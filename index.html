@@ -248,14 +248,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <button class="btn-jogo" onclick="novoJogoERender()">
       <b>🎮 Novo Jogo (solo/CPU)</b><small>Você contra a CPU.</small>
     </button>
-    <!-- 🆕 ONLINE: botões de sala -->
     <button class="btn-jogo" onclick="onlineCriarSala()" style="color:#4caf50;border-color:#4caf50">
       <b>🌐 Criar Sala Online</b><small>Para o primeiro jogador (host).</small>
     </button>
     <button class="btn-jogo" onclick="onlineEntrarSala()" style="color:#4caf50;border-color:#4caf50">
       <b>🔗 Entrar em Sala</b><small>Para o segundo jogador.</small>
     </button>
-    <!-- 🆕 fim -->
     <button class="btn-voltar" onclick="document.getElementById('modal-jogo').classList.remove('aberto')" style="width:100%;margin-top:6px">Fechar</button>
   </div>
 </div>
@@ -275,7 +273,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <button class="btn-voltar" id="cfg-voltar" style="display:none" onclick="voltarMenuCfg()">⬅ Voltar</button>
     </div>
     <div id="cfg-menu-principal">
-      <!-- 🆕 ONLINE: menu -->
       <button class="cfg-menu-btn" onclick="onlineCriarSala()" style="color:#4caf50;border-color:#4caf50">🌐 Criar Sala Online</button>
       <button class="cfg-menu-btn" onclick="onlineEntrarSala()" style="color:#4caf50;border-color:#4caf50">🔗 Entrar em Sala</button>
       <hr style="border-color:rgba(255,255,255,.1);margin:8px 0">
@@ -297,7 +294,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <select id="cfg-modoJogo">
           <option value="PvAI">Jogador vs CPU</option>
           <option value="AIvAI">CPU vs CPU (Espectador)</option>
-          <!-- 🆕 ONLINE -->
           <option value="PvP">🌐 Online (Trystero)</option>
         </select>
       </div>
@@ -463,17 +459,15 @@ let teslaGeneration = 0;
 let acaoViradaMeldId = null;
 let secretClicks = 0, secretTimer = null;
 
-// 🆕 ONLINE: estado do Trystero (declarado cedo pra funções poderem referenciar)
+// 🆕 ONLINE: estado do Trystero
 let online = { room: null, isHost: false, meuIndex: 0, send: null, applyingRemote: false, ready: false };
 
-// 🆕 ONLINE: helpers de "quem sou eu"
 function meuIdx() {
   if (cfg.modoJogo === 'PvP' && online.ready) return online.meuIndex;
   return 0;
 }
 function oponenteIdx() { return 1 - meuIdx(); }
 
-// 🆕 ONLINE: broadcast guardado
 function broadcast(type, extra) {
   if (!online.ready || online.applyingRemote || !online.send) return;
   try { online.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
@@ -553,7 +547,7 @@ function novoJogo() {
   addLog(`Batidinha: novo jogo! ${G.jogadores[G.turno].nome} começa.`);
   render();
   if (cfg.modoJogo === 'AIvAI' || (cfg.modoJogo === 'PvAI' && G.turno === 1)) scheduleCpuTurn(900);
-  // 🆕 ONLINE: host sincroniza novo estado
+  
   if (online.ready && online.isHost) {
     setTimeout(() => broadcast('init_state', { state: JSON.parse(JSON.stringify({...G, selecionadas: []})) }), 300);
   }
@@ -572,7 +566,7 @@ function comprarDoMonte() {
   if (G.turno === 0) G.ultimaPuxadaId = c.id;
   if (G.turno === 0 && cfg.unlimitedDraw && cfg.modoJogo !== 'PvP') {} else G.fase = 'play';
   addLog(cfg.verCarta ? `${G.jogadores[G.turno].nome} puxou ${c.rank}${c.suit}` : `${G.jogadores[G.turno].nome} puxou do monte`);
-  broadcast('comprar'); // 🆕
+  broadcast('comprar');
 }
 
 function pegarLixo() {
@@ -584,7 +578,7 @@ function pegarLixo() {
   G.lixo.pop(); 
   j.mao.push(card); G.fase = 'play';
   addLog(`${j.nome} pegou ${card.rank}${card.suit} do lixo`);
-  broadcast('pegar_lixo'); // 🆕
+  broadcast('pegar_lixo');
 }
 
 function devolverLixo() {
@@ -595,7 +589,7 @@ function devolverLixo() {
   G.lixo.push(...cartas);
   G.lixoOriginal = []; G.fase = 'draw'; G.selecionadas.clear();
   addLog('Lixo devolvido.'); render();
-  broadcast('devolver_lixo'); // 🆕
+  broadcast('devolver_lixo');
 }
 
 function baixarJogada(idx, cards, tipo, virada = false) {
@@ -607,7 +601,7 @@ function baixarJogada(idx, cards, tipo, virada = false) {
   j.melds.push({ id: ++meldIdCounter, type: tipo, cards: res.ordenadas, rank: res.rank || null, suit: res.naipe || null, startRank: res.startRank || 0, owner: idx, virada, bluff: false });
   const desc = tipo === 'trinca' ? `trinca de ${res.rank}` : `sequência de ${res.naipe}`;
   addLog(`${j.nome} baixou ${desc}${virada ? ' (virada)' : ''}`);
-  broadcast('baixar', { turno: idx, cardIds: cards.map(c => c.id), tipo }); // 🆕
+  broadcast('baixar', { turno: idx, cardIds: cards.map(c => c.id), tipo });
   return true;
 }
 
@@ -624,7 +618,7 @@ function baixarBlefe(idx, cards) {
   j.melds.push(meld);
   if (valida) { const desc = tr.valida ? `trinca de ${tr.rank}` : `sequência de ${sq.naipe}`; addLog(`${j.nome} baixou ${desc} (virada)`); }
   else addLog(`${j.nome} baixou um BLEFE (virado)`);
-  broadcast('baixar_virada', { turno: idx, cardIds: cards.map(c => c.id) }); // 🆕
+  broadcast('baixar_virada', { turno: idx, cardIds: cards.map(c => c.id) });
   return true;
 }
 
@@ -634,7 +628,7 @@ function descartar(idx, cardId) {
   const card = j.mao.find(c => c.id === cardId); if (!card) return false;
   j.mao = j.mao.filter(c => c.id !== cardId); G.lixo.push(card);
   addLog(`${j.nome} descartou ${card.rank}${card.suit}`);
-  broadcast('descartar', { turno: idx, cardId }); // 🆕 (antes do auto-bater)
+  broadcast('descartar', { turno: idx, cardId });
   if (idx === 0 && G.primeiraPuxadaAtiva && G.ultimaPuxadaId === cardId) {
     G.primeiraPuxadaAtiva = false;
     addLog('Mesma carta descartada. Pode puxar novamente.');
@@ -662,12 +656,12 @@ function podeBater(idx) {
 }
 
 function bater(idx) {
-  if (G.finalizado) return false; // 🆕 idempotente (evita duplo disparo remoto)
+  if (G.finalizado) return false; 
   if (!podeBater(idx)) { addLog('Não pode bater.'); return false; }
   G.jogadores[idx].melds?.forEach(m => { if (m.virada && !m.bluff) m.virada = false; });
   G.finalizado = true;
   addLog(`🏆 ${G.jogadores[idx].nome} BATEU!`);
-  broadcast('bater', { turno: idx }); // 🆕
+  broadcast('bater', { turno: idx });
   render(); mostrarFim(idx, false); return true;
 }
 
@@ -786,13 +780,13 @@ async function teslaAcao(actionType, texto, idx, gen) {
 function testarVoz() { if (!speechSynth) { showToast('TTS não suportado'); return; } speak('Testando voz Tesla', 0); showToast('🔊 Testando'); }
 
 function scheduleCpuTurn(delay) { 
-  if (cfg.modoJogo === 'PvP') return; // 🆕 nunca chama CPU em online
+  if (cfg.modoJogo === 'PvP') return;
   setTimeout(() => teslaCpuTurn(), delay || 400); 
 }
 
 async function teslaCpuTurn() {
   if (!G || G.finalizado) return;
-  if (cfg.modoJogo === 'PvP') return; // 🆕 guard extra
+  if (cfg.modoJogo === 'PvP') return;
   const idx = G.turno;
   if (cfg.modoJogo === 'PvAI' && idx === 0) return;
   if (isProcessingAI) return;
@@ -926,7 +920,7 @@ function renderMao() {
   el.innerHTML = '';
   el.classList.toggle('overlap', cfg.maoOverlap);
   
-  const j = G.jogadores[meuIdx()]; // 🆕 usa jogador local
+  const j = G.jogadores[meuIdx()];
   j.mao.forEach((c, i) => {
     const d = cardEl(c, { sel: G.selecionadas.has(c.id) });
     d.dataset.id = c.id;
@@ -966,7 +960,7 @@ function renderLixo() {
 }
 
 function renderMeldsCompleto(container, interativo) {
-  const ordem = meuIdx() === 0 ? [1, 0] : [0, 1]; // 🆕 oponente primeiro
+  const ordem = meuIdx() === 0 ? [1, 0] : [0, 1];
   ordem.forEach(idx => {
     const j = G.jogadores[idx]; if (j.melds.length === 0) return;
     const isOposta = (idx === oponenteIdx());
@@ -999,7 +993,7 @@ function renderMesa() {
 }
 
 function renderStatus() {
-  const jogadorAtual = G.jogadores[meuIdx()]; // 🆕
+  const jogadorAtual = G.jogadores[meuIdx()];
   document.getElementById('nome-jogador').textContent = jogadorAtual.nome;
   document.getElementById('cartas-jogador').textContent = jogadorAtual.mao.length + ' cartas';
   document.getElementById('cartas-cpu').textContent = G.jogadores[oponenteIdx()].mao.length;
@@ -1024,7 +1018,7 @@ function renderStatus() {
   document.body.style.setProperty('--esp-mesa', cfg.espMesa + 'px');
 
   document.getElementById('badge-espectador').style.display = cfg.modoJogo === 'AIvAI' ? 'inline-block' : 'none';
-  document.getElementById('badge-online').style.display = (cfg.modoJogo === 'PvP' && online.ready) ? 'inline-block' : 'none'; // 🆕
+  document.getElementById('badge-online').style.display = (cfg.modoJogo === 'PvP' && online.ready) ? 'inline-block' : 'none';
   renderTestToggles();
 }
 
@@ -1033,7 +1027,6 @@ function renderAcoes() {
   if (G.finalizado) return;
   const isIAvIA = cfg.modoJogo === 'AIvAI', idx = G.turno, j = G.jogadores[idx];
   
-  // 🆕 Online: se não for minha vez, mostra "aguarde"
   if (!isIAvIA) {
     const meu = meuIdx();
     if (idx !== meu) { 
@@ -1067,7 +1060,16 @@ function renderAcoes() {
   else if (j.mao.length === 0) btn('Passar', () => { passar(); }, true, '', 'passar');
 }
 
-function render() { if (!G) return; renderMao(); renderBarra(); renderLixo(); renderMesa(); renderStatus(); renderAcoes(); salvarEstado(); }
+function render() { 
+  if (!G) { 
+    const m = document.getElementById('mao-jogador');
+    if (m) m.innerHTML = '<div class="vazio" style="padding:30px">🔄 Aguardando o Host iniciar o jogo...</div>';
+    const a = document.getElementById('acoes');
+    if (a) a.innerHTML = '';
+    return; 
+  }
+  renderMao(); renderBarra(); renderLixo(); renderMesa(); renderStatus(); renderAcoes(); salvarEstado(); 
+}
 
 function onMeldClick(meldId, ownerIdx) {
   if (G.finalizado || cfg.modoJogo === 'AIvAI' || G.fase !== 'play') return;
@@ -1093,7 +1095,7 @@ window.acaoVirada = function(tipo) {
 }
 
 function tentarBaixar(virada) {
-  const idx = G.turno; // 🆕 sempre o jogador da vez
+  const idx = G.turno;
   const j = G.jogadores[idx];
   const cards = [...G.selecionadas].map(id => j.mao.find(c => c.id === id)).filter(Boolean);
   if (cards.length !== 3) { addLog('Selecione exatamente 3 cartas.'); return; }
@@ -1378,10 +1380,11 @@ window.onlineCriarSala = async function() {
     online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
     online.isHost = true; online.meuIndex = 0;
     setupOnlineRoom(code.trim());
+    
     cfg.modoJogo = 'PvP';
     cfg.nome1 = cfg.nome1 || 'Host';
-    cfg.nome2 = cfg.nome2 || 'Convidado';
-    novoJogo();
+    cfg.nome2 = 'Aguardando...'; // Nome temporário até o amigo entrar
+    novoJogo(); // O Host cria o jogo do zero
     showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
@@ -1397,37 +1400,62 @@ window.onlineEntrarSala = async function() {
     online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
     online.isHost = false; online.meuIndex = 1;
     setupOnlineRoom(code.trim());
+    
     cfg.modoJogo = 'PvP';
-    cfg.nome2 = cfg.nome1 || 'Você'; // convidado usa nome1 como seu nome
-    cfg.nome1 = cfg.nome1 || 'Convidado';
-    showToast('Entrando na sala "' + code.trim() + '". Aguardando host...');
+    G = null; // O convidado não cria o jogo, ele apenas espera o Host enviar
+    render(); 
+    showToast('Conectado à sala. Aguardando o Host iniciar...');
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
 
 function setupOnlineRoom(code) {
   const [send, get] = online.room.makeAction('acao');
   online.send = send;
+  
   get((data) => {
     if (data && data.from === online.meuIndex) return;
     onReceive(data);
   });
+
   online.room.onPeerJoin(() => {
     showToast('✅ Oponente conectou!');
     if (online.isHost && G) {
-      setTimeout(() => {
+      // Sistema Anti-Falha: Envia o estado 3 vezes para garantir que chegue
+      const enviarEstado = () => {
         try {
           const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
           send({ type: 'init', state: clone, from: 0 });
-        } catch(e) { console.warn('init send fail', e); }
-      }, 300);
+        } catch(e) { console.warn(e); }
+      };
+      setTimeout(enviarEstado, 500);
+      setTimeout(enviarEstado, 1500);
+      setTimeout(enviarEstado, 3000);
+    } else if (!online.isHost) {
+      // Se for convidado, pede o estado caso não receba em 1 segundo
+      setTimeout(() => {
+        if (!G) send({ type: 'req_state', from: 1 });
+      }, 1000);
     }
   });
+  
   online.room.onPeerLeave(() => showToast('⚠️ Oponente desconectou.'));
   online.ready = true;
 }
 
 function onReceive(data) {
   if (!data || !data.type) return;
+  
+  // Se o convidado está pedindo o estado, o host envia
+  if (data.type === 'req_state') {
+    if (online.isHost && G) {
+      try {
+        const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
+        online.send({ type: 'init', state: clone, from: 0 });
+      } catch(e) {}
+    }
+    return;
+  }
+
   online.applyingRemote = true;
   try {
     switch (data.type) {
