@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Batidinha V8.1 (Trystero)</title>
+<title>Batidinha V8.2 (PeerJS)</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a3d1f">
+<!-- PeerJS Library -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
@@ -187,7 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="tesla-pointer"><div class="tp-outer"></div><div class="tp-inner"></div></div>
 
 <div id="topo">
-  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V8.1 (Trystero)</span></span>
+  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V8.2 (PeerJS)</span></span>
   <span class="badge" id="badge-serie" style="margin-left:10px;background:rgba(255,213,79,.15);color:#ffd54f;font-weight:800;padding:2px 8px;border-radius:6px;font-size:11px">(0 - 0)</span>
   <span class="badge-espectador" id="badge-espectador">👁️ ESPECTADOR</span>
   <span class="badge" id="badge-online" style="display:none;margin-left:6px;background:#1565c0;color:#fff;font-weight:800;padding:2px 8px;border-radius:6px;font-size:10px">🌐 ONLINE</span>
@@ -294,7 +296,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <select id="cfg-modoJogo">
           <option value="PvAI">Jogador vs CPU</option>
           <option value="AIvAI">CPU vs CPU (Espectador)</option>
-          <option value="PvP">🌐 Online (Trystero)</option>
+          <option value="PvP">🌐 Online (PeerJS)</option>
         </select>
       </div>
       <div class="cfg-linha"><span>Série</span>
@@ -448,8 +450,8 @@ let cfg = {
   teslaVoice:false,teslaVoiceMode:'both',teslaPointer:false,teslaToasts:false
 };
 
-function carregarCfg() { try { const r = localStorage.getItem('batidinha_cfg_v81'); if (r) Object.assign(cfg, JSON.parse(r)); } catch(e) {} }
-function salvarCfg() { try { localStorage.setItem('batidinha_cfg_v81', JSON.stringify(cfg)); } catch(e) {} }
+function carregarCfg() { try { const r = localStorage.getItem('batidinha_cfg_v82'); if (r) Object.assign(cfg, JSON.parse(r)); } catch(e) {} }
+function salvarCfg() { try { localStorage.setItem('batidinha_cfg_v82', JSON.stringify(cfg)); } catch(e) {} }
 
 let G = null;
 let meldIdCounter = 0;
@@ -459,8 +461,8 @@ let teslaGeneration = 0;
 let acaoViradaMeldId = null;
 let secretClicks = 0, secretTimer = null;
 
-// 🆕 ONLINE: estado do Trystero
-let online = { room: null, isHost: false, meuIndex: 0, send: null, applyingRemote: false, ready: false };
+// 🆕 ONLINE: estado do PeerJS
+let online = { peer: null, conn: null, isHost: false, meuIndex: 0, applyingRemote: false, ready: false };
 
 function meuIdx() {
   if (cfg.modoJogo === 'PvP' && online.ready) return online.meuIndex;
@@ -469,17 +471,17 @@ function meuIdx() {
 function oponenteIdx() { return 1 - meuIdx(); }
 
 function broadcast(type, extra) {
-  if (!online.ready || online.applyingRemote || !online.send) return;
-  try { online.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
+  if (!online.ready || online.applyingRemote || !online.conn || !online.conn.open) return;
+  try { online.conn.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
 }
 
-function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v81'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
-function salvarSerie() { try { localStorage.setItem('batidinha_serie_v81', JSON.stringify(serieVitorias)); } catch(e) {} }
+function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v82'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
+function salvarSerie() { try { localStorage.setItem('batidinha_serie_v82', JSON.stringify(serieVitorias)); } catch(e) {} }
 
-function salvarEstado() { if (!G) return; try { localStorage.setItem('batidinha_save_v81', JSON.stringify({ ...G, selecionadas: [...G.selecionadas], serieVitorias })); } catch(e) {} }
+function salvarEstado() { if (!G) return; try { localStorage.setItem('batidinha_save_v82', JSON.stringify({ ...G, selecionadas: [...G.selecionadas], serieVitorias })); } catch(e) {} }
 function carregarEstadoSalvo() {
   try {
-    const r = localStorage.getItem('batidinha_save_v81');
+    const r = localStorage.getItem('batidinha_save_v82');
     if (r) {
       const l = JSON.parse(r);
       if (l && l.jogadores) {
@@ -1359,15 +1361,7 @@ function bindSlider(rid, nid, k) {
   n.addEventListener('input', () => { r.value = n.value; cfg[k] = +n.value; });
 }
 
-// ==================== 🆕 ONLINE (TRYSTERO V8.1) ====================
-async function loadTrystero() {
-  if (!window._trysteroJoin) {
-    const mod = await import('https://esm.sh/trystero@0.21.6');
-    window._trysteroJoin = mod.joinRoom;
-  }
-  return window._trysteroJoin;
-}
-
+// ==================== 🆕 ONLINE (PEERJS V8.2) ====================
 window.onlineCriarSala = async function() {
   const code = prompt('Nome da sala (você vai passar pro seu amigo):');
   if (!code) return;
@@ -1375,16 +1369,27 @@ window.onlineCriarSala = async function() {
     document.getElementById('modal-jogo').classList.remove('aberto');
     document.getElementById('modal-cfg').classList.remove('aberto');
     showToast('Conectando...');
-    const joinRoom = await loadTrystero();
-    online.room = joinRoom({ appId: 'batidinha-pvp-v81' }, code.trim());
-    online.isHost = true; online.meuIndex = 0;
-    setupOnlineRoom(code.trim());
     
-    cfg.modoJogo = 'PvP';
-    cfg.nome1 = cfg.nome1 || 'Host';
-    cfg.nome2 = 'Aguardando...';
-    novoJogo();
-    showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
+    // ID da sala formatado para não ter espaços ou caracteres especiais
+    const roomId = 'batidinha-v82-' + code.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    online.peer = new Peer(roomId);
+    
+    online.peer.on('open', (id) => {
+      online.isHost = true; online.meuIndex = 0; online.ready = true;
+      cfg.modoJogo = 'PvP';
+      cfg.nome1 = cfg.nome1 || 'Host';
+      cfg.nome2 = 'Aguardando...';
+      novoJogo(); 
+      showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
+    });
+
+    online.peer.on('connection', (conn) => {
+      online.conn = conn;
+      setupConn();
+    });
+    
+    online.peer.on('error', (err) => showToast('Erro: ' + err.type));
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
 
@@ -1395,50 +1400,54 @@ window.onlineEntrarSala = async function() {
     document.getElementById('modal-jogo').classList.remove('aberto');
     document.getElementById('modal-cfg').classList.remove('aberto');
     showToast('Entrando...');
-    const joinRoom = await loadTrystero();
-    online.room = joinRoom({ appId: 'batidinha-pvp-v81' }, code.trim());
-    online.isHost = false; online.meuIndex = 1;
-    setupOnlineRoom(code.trim());
     
-    cfg.modoJogo = 'PvP';
-    G = null; 
-    render(); 
-    showToast('Conectado à sala. Aguardando o Host iniciar...');
+    const roomId = 'batidinha-v82-' + code.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    online.peer = new Peer();
+    
+    online.peer.on('open', (id) => {
+      online.isHost = false; online.meuIndex = 1; online.ready = true;
+      online.conn = online.peer.connect(roomId);
+      setupConn();
+      
+      cfg.modoJogo = 'PvP';
+      G = null; 
+      render(); 
+      showToast('Conectado à sala. Aguardando o Host iniciar...');
+    });
+    
+    online.peer.on('error', (err) => showToast('Erro: ' + err.type));
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
 
-function setupOnlineRoom(code) {
-  const [send, get] = online.room.makeAction('acao');
-  online.send = send;
-  
-  get((data) => {
-    if (data && data.from === online.meuIndex) return;
-    onReceive(data);
-  });
-
-  online.room.onPeerJoin(() => {
+function setupConn() {
+  online.conn.on('open', () => {
     showToast('✅ Oponente conectou!');
     if (online.isHost && G) {
-      // Sistema Anti-Falha: Envia o estado 3 vezes para garantir que chegue
       const enviarEstado = () => {
         try {
           const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
-          send({ type: 'init', state: clone, from: 0 });
+          online.conn.send({ type: 'init', state: clone, from: 0 });
         } catch(e) { console.warn(e); }
       };
       setTimeout(enviarEstado, 500);
       setTimeout(enviarEstado, 1500);
-      setTimeout(enviarEstado, 3000);
     } else if (!online.isHost) {
-      // Se for convidado, pede o estado caso não receba em 1 segundo
       setTimeout(() => {
-        if (!G) send({ type: 'req_state', from: 1 });
+        if (!G) online.conn.send({ type: 'req_state', from: 1 });
       }, 1000);
     }
   });
-  
-  online.room.onPeerLeave(() => showToast('⚠️ Oponente desconectou.'));
-  online.ready = true;
+
+  online.conn.on('data', (data) => {
+    if (data && data.from === online.meuIndex) return;
+    onReceive(data);
+  });
+
+  online.conn.on('close', () => {
+    showToast('⚠️ Oponente desconectou.');
+    online.ready = false;
+  });
 }
 
 function onReceive(data) {
@@ -1448,7 +1457,7 @@ function onReceive(data) {
     if (online.isHost && G) {
       try {
         const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
-        online.send({ type: 'init', state: clone, from: 0 });
+        online.conn.send({ type: 'init', state: clone, from: 0 });
       } catch(e) {}
     }
     return;
@@ -1510,7 +1519,7 @@ function init() {
   bindSlider('cfg-teslaPointerSpeed', 'cfg-teslaPointerSpeedNum', 'teslaPointerSpeed');
   bindSlider('cfg-teslaVoiceSpeed', 'cfg-teslaVoiceSpeedNum', 'teslaVoiceSpeed');
 
-  const temSave = !!localStorage.getItem('batidinha_save_v81');
+  const temSave = !!localStorage.getItem('batidinha_save_v82');
   document.getElementById('btn-jogo-continuar').style.display = temSave ? 'block' : 'none';
 
   if (temSave) {
