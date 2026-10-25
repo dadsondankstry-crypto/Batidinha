@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Batidinha V7.6 (PWA)</title>
+<title>Batidinha V8.0 (Online)</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a3d1f">
 <style>
@@ -187,9 +187,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="tesla-pointer"><div class="tp-outer"></div><div class="tp-inner"></div></div>
 
 <div id="topo">
-  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V7.6</span></span>
+  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V8.0</span></span>
   <span class="badge" id="badge-serie" style="margin-left:10px;background:rgba(255,213,79,.15);color:#ffd54f;font-weight:800;padding:2px 8px;border-radius:6px;font-size:11px">(0 - 0)</span>
   <span class="badge-espectador" id="badge-espectador">👁️ ESPECTADOR</span>
+  <span class="badge" id="badge-online" style="display:none;margin-left:6px;background:#1565c0;color:#fff;font-weight:800;padding:2px 8px;border-radius:6px;font-size:10px">🌐 ONLINE</span>
   <span class="esp"></span>
   <button id="btn-fullscreen" title="Tela Cheia">⛶</button>
   <button id="btn-config" title="Menu">⚙️</button>
@@ -200,7 +201,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <div id="barra-info">
   <div class="info-cpu" onclick="abrirInspecao('cpu')">
-    <div class="rotulo">CPU</div>
+    <div class="rotulo" id="rotulo-oponente">CPU</div>
     <div class="card-back"><div class="contagem" id="cartas-cpu">9</div></div>
   </div>
   <div class="info-pilhas">
@@ -245,8 +246,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <b>▶️ Continuar Jogo Salvo</b><small>Retomar a partida onde parou.</small>
     </button>
     <button class="btn-jogo" onclick="novoJogoERender()">
-      <b>🎮 Novo Jogo</b><small>Começar uma nova partida.</small>
+      <b>🎮 Novo Jogo (solo/CPU)</b><small>Você contra a CPU.</small>
     </button>
+    <!-- 🆕 ONLINE: botões de sala -->
+    <button class="btn-jogo" onclick="onlineCriarSala()" style="color:#4caf50;border-color:#4caf50">
+      <b>🌐 Criar Sala Online</b><small>Para o primeiro jogador (host).</small>
+    </button>
+    <button class="btn-jogo" onclick="onlineEntrarSala()" style="color:#4caf50;border-color:#4caf50">
+      <b>🔗 Entrar em Sala</b><small>Para o segundo jogador.</small>
+    </button>
+    <!-- 🆕 fim -->
     <button class="btn-voltar" onclick="document.getElementById('modal-jogo').classList.remove('aberto')" style="width:100%;margin-top:6px">Fechar</button>
   </div>
 </div>
@@ -266,6 +275,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <button class="btn-voltar" id="cfg-voltar" style="display:none" onclick="voltarMenuCfg()">⬅ Voltar</button>
     </div>
     <div id="cfg-menu-principal">
+      <!-- 🆕 ONLINE: menu -->
+      <button class="cfg-menu-btn" onclick="onlineCriarSala()" style="color:#4caf50;border-color:#4caf50">🌐 Criar Sala Online</button>
+      <button class="cfg-menu-btn" onclick="onlineEntrarSala()" style="color:#4caf50;border-color:#4caf50">🔗 Entrar em Sala</button>
+      <hr style="border-color:rgba(255,255,255,.1);margin:8px 0">
       <button class="cfg-menu-btn" onclick="abrirSecaoCfg('jogadores')">Jogadores</button>
       <button class="cfg-menu-btn" onclick="abrirSecaoCfg('log')">Log e Privacidade</button>
       <button class="cfg-menu-btn" onclick="abrirSecaoCfg('interface')">Interface</button>
@@ -281,7 +294,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="cfg-linha"><span>Seu nome</span><input type="text" id="cfg-nome1" maxlength="14"></div>
       <div class="cfg-linha"><span>Nome do oponente</span><input type="text" id="cfg-nome2" maxlength="14"></div>
       <div class="cfg-linha"><span>Modo de Jogo</span>
-        <select id="cfg-modoJogo"><option value="PvAI">Jogador vs CPU</option><option value="AIvAI">CPU vs CPU (Espectador)</option></select>
+        <select id="cfg-modoJogo">
+          <option value="PvAI">Jogador vs CPU</option>
+          <option value="AIvAI">CPU vs CPU (Espectador)</option>
+          <!-- 🆕 ONLINE -->
+          <option value="PvP">🌐 Online (Trystero)</option>
+        </select>
       </div>
       <div class="cfg-linha"><span>Série</span>
         <select id="cfg-serie"><option value="0">∞ (Contínuo)</option><option value="1">MD1</option><option value="3">MD3</option><option value="5">MD5</option><option value="7">MD7</option><option value="9">MD9</option><option value="11">MD11</option></select>
@@ -298,12 +316,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div class="cfg-linha"><span>Cartas/linha (Mão)</span><input type="number" id="cfg-hand-cols" min="3" max="12"></div>
       <div class="cfg-linha"><span>Largura Carta (Lixo)</span><input type="number" id="cfg-lixo-w" min="20" max="80" step="2"></div>
       <div class="cfg-linha"><span>Largura Carta (Mesa)</span><input type="number" id="cfg-mesa-w" min="15" max="60" step="2"></div>
-      
       <h3>Espaçamento (Sobreposição)</h3>
       <div class="cfg-linha"><span>Espaço Mão (px)</span><input type="number" id="cfg-esp-hand" min="-80" max="0" step="1"></div>
       <div class="cfg-linha"><span>Espaço Lixo (px)</span><input type="number" id="cfg-esp-lixo" min="-80" max="0" step="1"></div>
       <div class="cfg-linha"><span>Espaço Mesa (px)</span><input type="number" id="cfg-esp-mesa" min="-80" max="0" step="1"></div>
-
       <h3>Layout</h3>
       <div class="cfg-linha"><span>Mão em Cascata (Sobreposta)</span><input type="checkbox" id="cfg-maoOverlap"></div>
       <div class="cfg-linha"><span>Lixo quebra linha?</span><input type="checkbox" id="cfg-lixo-quebra"></div>
@@ -424,14 +440,11 @@ let cfg = {
   serie:0,
   verCarta:false,logVisivel:false,toastAtivo:false,
   orgBotoesVisiveis:false,
-  
-  // NOVOS PADRÕES
   handWidth:52, handCols:6, 
   lixoWidth:42, lixoCols:12,
   mesaWidth:32,
   maoOverlap:false,
   espHand:-24, espLixo:-14, espMesa:-6,
-
   modoJogo:'PvAI',
   inspecao:false,unlimitedDraw:false,unlimitedDiscard:false,cheatMode:false,
   isAdmin:false,showFloatingTools:false,isAdminVisible:false,
@@ -439,8 +452,8 @@ let cfg = {
   teslaVoice:false,teslaVoiceMode:'both',teslaPointer:false,teslaToasts:false
 };
 
-function carregarCfg() { try { const r = localStorage.getItem('batidinha_cfg_v76solo'); if (r) Object.assign(cfg, JSON.parse(r)); } catch(e) {} }
-function salvarCfg() { try { localStorage.setItem('batidinha_cfg_v76solo', JSON.stringify(cfg)); } catch(e) {} }
+function carregarCfg() { try { const r = localStorage.getItem('batidinha_cfg_v80'); if (r) Object.assign(cfg, JSON.parse(r)); } catch(e) {} }
+function salvarCfg() { try { localStorage.setItem('batidinha_cfg_v80', JSON.stringify(cfg)); } catch(e) {} }
 
 let G = null;
 let meldIdCounter = 0;
@@ -450,13 +463,29 @@ let teslaGeneration = 0;
 let acaoViradaMeldId = null;
 let secretClicks = 0, secretTimer = null;
 
-function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v76solo'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
-function salvarSerie() { try { localStorage.setItem('batidinha_serie_v76solo', JSON.stringify(serieVitorias)); } catch(e) {} }
+// 🆕 ONLINE: estado do Trystero (declarado cedo pra funções poderem referenciar)
+let online = { room: null, isHost: false, meuIndex: 0, send: null, applyingRemote: false, ready: false };
 
-function salvarEstado() { if (!G) return; try { localStorage.setItem('batidinha_save_v76solo', JSON.stringify({ ...G, selecionadas: [...G.selecionadas], serieVitorias })); } catch(e) {} }
+// 🆕 ONLINE: helpers de "quem sou eu"
+function meuIdx() {
+  if (cfg.modoJogo === 'PvP' && online.ready) return online.meuIndex;
+  return 0;
+}
+function oponenteIdx() { return 1 - meuIdx(); }
+
+// 🆕 ONLINE: broadcast guardado
+function broadcast(type, extra) {
+  if (!online.ready || online.applyingRemote || !online.send) return;
+  try { online.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
+}
+
+function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v80'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
+function salvarSerie() { try { localStorage.setItem('batidinha_serie_v80', JSON.stringify(serieVitorias)); } catch(e) {} }
+
+function salvarEstado() { if (!G) return; try { localStorage.setItem('batidinha_save_v80', JSON.stringify({ ...G, selecionadas: [...G.selecionadas], serieVitorias })); } catch(e) {} }
 function carregarEstadoSalvo() {
   try {
-    const r = localStorage.getItem('batidinha_save_v76solo');
+    const r = localStorage.getItem('batidinha_save_v80');
     if (r) {
       const l = JSON.parse(r);
       if (l && l.jogadores) {
@@ -509,7 +538,7 @@ function novoJogo() {
   G = {
     jogadores: [
       { nome: cfg.nome1, mao: [], melds: [], isCPU: cfg.modoJogo === 'AIvAI' },
-      { nome: cfg.nome2, mao: [], melds: [], isCPU: true }
+      { nome: cfg.nome2, mao: [], melds: [], isCPU: cfg.modoJogo === 'AIvAI' }
     ],
     monte: [], lixo: [],
     turno: Math.random() < 0.5 ? 0 : 1, fase: 'draw', finalizado: false,
@@ -523,7 +552,11 @@ function novoJogo() {
   G.monte = deck;
   addLog(`Batidinha: novo jogo! ${G.jogadores[G.turno].nome} começa.`);
   render();
-  if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(900);
+  if (cfg.modoJogo === 'AIvAI' || (cfg.modoJogo === 'PvAI' && G.turno === 1)) scheduleCpuTurn(900);
+  // 🆕 ONLINE: host sincroniza novo estado
+  if (online.ready && online.isHost) {
+    setTimeout(() => broadcast('init_state', { state: JSON.parse(JSON.stringify({...G, selecionadas: []})) }), 300);
+  }
 }
 
 function novoJogoERender() { document.getElementById('modal-jogo').classList.remove('aberto'); novoJogo(); }
@@ -537,8 +570,9 @@ function comprarDoMonte() {
   if (G.monte.length === 0) { fimPorMonte(); return; }
   const c = G.monte.pop(); G.jogadores[G.turno].mao.push(c);
   if (G.turno === 0) G.ultimaPuxadaId = c.id;
-  if (G.turno === 0 && cfg.unlimitedDraw) {} else G.fase = 'play';
+  if (G.turno === 0 && cfg.unlimitedDraw && cfg.modoJogo !== 'PvP') {} else G.fase = 'play';
   addLog(cfg.verCarta ? `${G.jogadores[G.turno].nome} puxou ${c.rank}${c.suit}` : `${G.jogadores[G.turno].nome} puxou do monte`);
+  broadcast('comprar'); // 🆕
 }
 
 function pegarLixo() {
@@ -550,16 +584,18 @@ function pegarLixo() {
   G.lixo.pop(); 
   j.mao.push(card); G.fase = 'play';
   addLog(`${j.nome} pegou ${card.rank}${card.suit} do lixo`);
+  broadcast('pegar_lixo'); // 🆕
 }
 
 function devolverLixo() {
-  const j = G.jogadores[0];
+  const j = G.jogadores[meuIdx()];
   const cartas = G.lixoOriginal.map(id => j.mao.find(c => c.id === id)).filter(Boolean);
   if (cartas.length !== G.lixoOriginal.length) return;
   j.mao = j.mao.filter(c => !G.lixoOriginal.includes(c.id));
   G.lixo.push(...cartas);
   G.lixoOriginal = []; G.fase = 'draw'; G.selecionadas.clear();
   addLog('Lixo devolvido.'); render();
+  broadcast('devolver_lixo'); // 🆕
 }
 
 function baixarJogada(idx, cards, tipo, virada = false) {
@@ -571,6 +607,7 @@ function baixarJogada(idx, cards, tipo, virada = false) {
   j.melds.push({ id: ++meldIdCounter, type: tipo, cards: res.ordenadas, rank: res.rank || null, suit: res.naipe || null, startRank: res.startRank || 0, owner: idx, virada, bluff: false });
   const desc = tipo === 'trinca' ? `trinca de ${res.rank}` : `sequência de ${res.naipe}`;
   addLog(`${j.nome} baixou ${desc}${virada ? ' (virada)' : ''}`);
+  broadcast('baixar', { turno: idx, cardIds: cards.map(c => c.id), tipo }); // 🆕
   return true;
 }
 
@@ -587,6 +624,7 @@ function baixarBlefe(idx, cards) {
   j.melds.push(meld);
   if (valida) { const desc = tr.valida ? `trinca de ${tr.rank}` : `sequência de ${sq.naipe}`; addLog(`${j.nome} baixou ${desc} (virada)`); }
   else addLog(`${j.nome} baixou um BLEFE (virado)`);
+  broadcast('baixar_virada', { turno: idx, cardIds: cards.map(c => c.id) }); // 🆕
   return true;
 }
 
@@ -596,23 +634,24 @@ function descartar(idx, cardId) {
   const card = j.mao.find(c => c.id === cardId); if (!card) return false;
   j.mao = j.mao.filter(c => c.id !== cardId); G.lixo.push(card);
   addLog(`${j.nome} descartou ${card.rank}${card.suit}`);
+  broadcast('descartar', { turno: idx, cardId }); // 🆕 (antes do auto-bater)
   if (idx === 0 && G.primeiraPuxadaAtiva && G.ultimaPuxadaId === cardId) {
     G.primeiraPuxadaAtiva = false;
     addLog('Mesma carta descartada. Pode puxar novamente.');
     G.fase = 'draw'; render(); return true;
   } else if (idx === 0 && G.primeiraPuxadaAtiva) G.primeiraPuxadaAtiva = false;
   if (podeBater(idx)) { bater(idx); return true; }
-  if (idx === 0 && cfg.unlimitedDiscard) render(); else finalizarTurno();
+  if (idx === 0 && cfg.unlimitedDiscard && cfg.modoJogo !== 'PvP') render(); else finalizarTurno();
   return true;
 }
 
-function passar() { if (G.jogadores[G.turno].mao.length > 0) return; addLog(`${G.jogadores[G.turno].nome} passou.`); finalizarTurno(); }
+function passar() { if (G.jogadores[G.turno].mao.length > 0) return; addLog(`${G.jogadores[G.turno].nome} passou.`); finalizarTurno(); broadcast('passar'); }
 
 function finalizarTurno() {
   if (G.finalizado) return;
   if (G.turno === 0) G.primeiraPuxadaAtiva = false;
   G.turno = 1 - G.turno; G.fase = 'draw'; G.selecionadas.clear(); G.lixoOriginal = []; render();
-  if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(750);
+  if (cfg.modoJogo === 'AIvAI' || (cfg.modoJogo === 'PvAI' && G.turno === 1)) scheduleCpuTurn(750);
 }
 
 function podeBater(idx) {
@@ -623,10 +662,12 @@ function podeBater(idx) {
 }
 
 function bater(idx) {
+  if (G.finalizado) return false; // 🆕 idempotente (evita duplo disparo remoto)
   if (!podeBater(idx)) { addLog('Não pode bater.'); return false; }
   G.jogadores[idx].melds?.forEach(m => { if (m.virada && !m.bluff) m.virada = false; });
   G.finalizado = true;
   addLog(`🏆 ${G.jogadores[idx].nome} BATEU!`);
+  broadcast('bater', { turno: idx }); // 🆕
   render(); mostrarFim(idx, false); return true;
 }
 
@@ -744,9 +785,14 @@ async function teslaAcao(actionType, texto, idx, gen) {
 }
 function testarVoz() { if (!speechSynth) { showToast('TTS não suportado'); return; } speak('Testando voz Tesla', 0); showToast('🔊 Testando'); }
 
-function scheduleCpuTurn(delay) { setTimeout(() => teslaCpuTurn(), delay || 400); }
+function scheduleCpuTurn(delay) { 
+  if (cfg.modoJogo === 'PvP') return; // 🆕 nunca chama CPU em online
+  setTimeout(() => teslaCpuTurn(), delay || 400); 
+}
+
 async function teslaCpuTurn() {
   if (!G || G.finalizado) return;
+  if (cfg.modoJogo === 'PvP') return; // 🆕 guard extra
   const idx = G.turno;
   if (cfg.modoJogo === 'PvAI' && idx === 0) return;
   if (isProcessingAI) return;
@@ -880,19 +926,20 @@ function renderMao() {
   el.innerHTML = '';
   el.classList.toggle('overlap', cfg.maoOverlap);
   
-  const j = G.jogadores[0];
+  const j = G.jogadores[meuIdx()]; // 🆕 usa jogador local
   j.mao.forEach((c, i) => {
     const d = cardEl(c, { sel: G.selecionadas.has(c.id) });
     d.dataset.id = c.id;
     if (cfg.maoOverlap) d.style.zIndex = 100 + i;
-    if (cfg.modoJogo === 'PvAI') configurarDrag(d, c.id);
+    if (cfg.modoJogo !== 'AIvAI') configurarDrag(d, c.id);
     el.appendChild(d);
   });
   if (j.mao.length === 0) { const v = document.createElement('div'); v.className = 'vazio'; v.textContent = 'Mão vazia'; el.appendChild(v); }
 }
 
 function renderBarra() {
-  document.getElementById('cartas-cpu').textContent = G.jogadores[1].mao.length;
+  document.getElementById('cartas-cpu').textContent = G.jogadores[oponenteIdx()].mao.length;
+  document.getElementById('rotulo-oponente').textContent = cfg.modoJogo === 'PvP' ? G.jogadores[oponenteIdx()].nome : 'CPU';
   const pm = document.getElementById('p-monte'); pm.innerHTML = ''; pm.classList.toggle('vazia', G.monte.length === 0);
   if (G.monte.length > 0) {
     const b = document.createElement('div'); b.className = 'card'; b.style.background = 'linear-gradient(135deg,#1e3a8a,#3b82f6)'; b.style.borderColor = '#1e40af';
@@ -919,14 +966,15 @@ function renderLixo() {
 }
 
 function renderMeldsCompleto(container, interativo) {
-  [1, 0].forEach(idx => {
+  const ordem = meuIdx() === 0 ? [1, 0] : [0, 1]; // 🆕 oponente primeiro
+  ordem.forEach(idx => {
     const j = G.jogadores[idx]; if (j.melds.length === 0) return;
-    const linha = document.createElement('div'); linha.className = 'meld-linha' + (idx === 1 ? ' oponente' : '');
+    const isOposta = (idx === oponenteIdx());
+    const linha = document.createElement('div'); linha.className = 'meld-linha' + (isOposta ? ' oponente' : '');
     const tit = document.createElement('div'); tit.className = 'meld-titulo'; tit.textContent = j.nome + ` (${j.melds.filter(m => !m.bluff).length}/3)`; linha.appendChild(tit);
     const scroll = document.createElement('div'); scroll.className = 'meld-scroll';
     j.melds.forEach(m => {
       const d = document.createElement('div');
-      const isOposta = (idx === 1);
       let cls = 'meld';
       if (m.virada) cls += ' virada';
       if (m.virada && isOposta) cls += ' oculta';
@@ -951,10 +999,11 @@ function renderMesa() {
 }
 
 function renderStatus() {
-  document.getElementById('nome-jogador').textContent = G.jogadores[0].nome;
-  document.getElementById('cartas-jogador').textContent = G.jogadores[0].mao.length + ' cartas';
-  document.getElementById('cartas-cpu').textContent = G.jogadores[1].mao.length;
-  const reais0 = G.jogadores[0].melds.filter(m => !m.bluff).length;
+  const jogadorAtual = G.jogadores[meuIdx()]; // 🆕
+  document.getElementById('nome-jogador').textContent = jogadorAtual.nome;
+  document.getElementById('cartas-jogador').textContent = jogadorAtual.mao.length + ' cartas';
+  document.getElementById('cartas-cpu').textContent = G.jogadores[oponenteIdx()].mao.length;
+  const reais0 = jogadorAtual.melds.filter(m => !m.bluff).length;
   const bv = document.getElementById('badge-vitoria');
   bv.textContent = `${reais0}/3 JOGOS`;
   bv.style.display = '';
@@ -975,6 +1024,7 @@ function renderStatus() {
   document.body.style.setProperty('--esp-mesa', cfg.espMesa + 'px');
 
   document.getElementById('badge-espectador').style.display = cfg.modoJogo === 'AIvAI' ? 'inline-block' : 'none';
+  document.getElementById('badge-online').style.display = (cfg.modoJogo === 'PvP' && online.ready) ? 'inline-block' : 'none'; // 🆕
   renderTestToggles();
 }
 
@@ -982,7 +1032,16 @@ function renderAcoes() {
   const area = document.getElementById('acoes'); area.innerHTML = '';
   if (G.finalizado) return;
   const isIAvIA = cfg.modoJogo === 'AIvAI', idx = G.turno, j = G.jogadores[idx];
-  if (!isIAvIA && idx !== 0) { const d = document.createElement('div'); d.className = 'aguarde'; d.textContent = '⏳ Vez do oponente...'; area.appendChild(d); return; }
+  
+  // 🆕 Online: se não for minha vez, mostra "aguarde"
+  if (!isIAvIA) {
+    const meu = meuIdx();
+    if (idx !== meu) { 
+      const d = document.createElement('div'); d.className = 'aguarde'; 
+      d.textContent = cfg.modoJogo === 'PvP' ? `⏳ Vez de ${j.nome}...` : '⏳ Vez do oponente...'; 
+      area.appendChild(d); return; 
+    }
+  }
   const fd = isIAvIA;
   const btn = (txt, fn, en, cls, action) => {
     const b = document.createElement('button'); b.textContent = txt; b.disabled = fd || !en;
@@ -995,9 +1054,9 @@ function renderAcoes() {
     btn('Pegar Lixo', () => { pegarLixo(); render(); }, G.lixo.length > 0, '', 'pegar_lixo');
     return;
   }
-  if (cfg.unlimitedDraw) btn('Comprar Mais', () => { comprarDoMonte(); render(); }, G.monte.length > 0, '', 'comprar_mais');
+  if (cfg.unlimitedDraw && cfg.modoJogo !== 'PvP') btn('Comprar Mais', () => { comprarDoMonte(); render(); }, G.monte.length > 0, '', 'comprar_mais');
   const sel = [...G.selecionadas];
-  const podeDev = idx === 0 && !fd && G.lixoOriginal.length > 0 && sel.length === G.lixoOriginal.length && sel.every(id => G.lixoOriginal.includes(id));
+  const podeDev = !fd && G.lixoOriginal.length > 0 && sel.length === G.lixoOriginal.length && sel.every(id => G.lixoOriginal.includes(id));
   if (podeDev) btn('Devolver Lixo', () => devolverLixo(), true, '', 'devolver_lixo');
   else {
     btn('Baixar', () => tentarBaixar(false), sel.length === 3, '', 'baixar');
@@ -1011,17 +1070,19 @@ function renderAcoes() {
 function render() { if (!G) return; renderMao(); renderBarra(); renderLixo(); renderMesa(); renderStatus(); renderAcoes(); salvarEstado(); }
 
 function onMeldClick(meldId, ownerIdx) {
-  if (G.finalizado || cfg.modoJogo === 'AIvAI' || G.turno !== 0 || G.fase !== 'play') return;
+  if (G.finalizado || cfg.modoJogo === 'AIvAI' || G.fase !== 'play') return;
+  const meu = meuIdx();
+  if (G.turno !== meu) return;
   const j = G.jogadores[ownerIdx];
   const meld = j.melds.find(m => m.id === meldId); if (!meld) return;
-  if (ownerIdx !== 0) { addLog('Só nas suas jogadas.'); return; }
+  if (ownerIdx !== meu) { addLog('Só nas suas jogadas.'); return; }
   if (meld.virada) { acaoViradaMeldId = meldId; document.getElementById('modal-acao-virada').classList.add('aberto'); return; }
   if (meld.bluff) { addLog('Blefe não aceita encaixe.'); return; }
   addLog('Batidinha: sem encaixe.');
 }
 
 window.acaoVirada = function(tipo) {
-  const j = G.jogadores[0];
+  const j = G.jogadores[meuIdx()];
   const meld = j.melds.find(m => m.id === acaoViradaMeldId); if (!meld) return;
   if (tipo === 'revelar') {
     meld.virada = false;
@@ -1032,18 +1093,19 @@ window.acaoVirada = function(tipo) {
 }
 
 function tentarBaixar(virada) {
-  const j = G.jogadores[0];
+  const idx = G.turno; // 🆕 sempre o jogador da vez
+  const j = G.jogadores[idx];
   const cards = [...G.selecionadas].map(id => j.mao.find(c => c.id === id)).filter(Boolean);
   if (cards.length !== 3) { addLog('Selecione exatamente 3 cartas.'); return; }
-  if (virada) { if (baixarBlefe(0, cards)) { G.selecionadas.clear(); render(); } return; }
+  if (virada) { if (baixarBlefe(idx, cards)) { G.selecionadas.clear(); render(); } return; }
   const res = verificarJogada(cards);
   if (!res.valida) { addLog(`Inválido: ${res.motivo}`); return; }
-  if (baixarJogada(0, cards, res.tipo)) { G.selecionadas.clear(); render(); }
+  if (baixarJogada(idx, cards, res.tipo)) { G.selecionadas.clear(); render(); }
 }
 
 function configurarDrag(el, cardId) {
   let ds = null;
-  el.addEventListener('pointerdown', e => { if (G.finalizado || G.turno !== 0) return; el.setPointerCapture(e.pointerId); ds = { id: cardId, el, sx: e.clientX, sy: e.clientY, d: false }; });
+  el.addEventListener('pointerdown', e => { if (G.finalizado || G.turno !== meuIdx()) return; el.setPointerCapture(e.pointerId); ds = { id: cardId, el, sx: e.clientX, sy: e.clientY, d: false }; });
   el.addEventListener('pointermove', e => {
     if (!ds || ds.id !== cardId) return;
     const dx = Math.abs(e.clientX - ds.sx), dy = Math.abs(e.clientY - ds.sy);
@@ -1057,7 +1119,7 @@ function configurarDrag(el, cardId) {
       const cards = Array.from(document.querySelectorAll('#mao-jogador > .card'));
       let cl = null, md = Infinity;
       cards.forEach(c => { if (c === el) return; const r = c.getBoundingClientRect(); const d = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2)); if (d < md) { md = d; cl = c; } });
-      if (cl && md < 100) { const tid = parseInt(cl.dataset.id), mao = G.jogadores[0].mao; const fi = mao.findIndex(c => c.id === cardId), ti = mao.findIndex(c => c.id === tid); if (fi !== -1 && ti !== -1) { const [m] = mao.splice(fi, 1); mao.splice(ti, 0, m); render(); } }
+      if (cl && md < 100) { const tid = parseInt(cl.dataset.id), mao = G.jogadores[meuIdx()].mao; const fi = mao.findIndex(c => c.id === cardId), ti = mao.findIndex(c => c.id === tid); if (fi !== -1 && ti !== -1) { const [m] = mao.splice(fi, 1); mao.splice(ti, 0, m); render(); } }
     } else { if (G.selecionadas.has(cardId)) G.selecionadas.delete(cardId); else G.selecionadas.add(cardId); render(); }
     ds = null;
   };
@@ -1065,8 +1127,8 @@ function configurarDrag(el, cardId) {
 }
 
 window.organizarMao = function(tipo) {
-  if (G.finalizado || G.turno !== 0) return;
-  const m = G.jogadores[0].mao;
+  if (G.finalizado || G.turno !== meuIdx()) return;
+  const m = G.jogadores[meuIdx()].mao;
   if (tipo === 'naipe') m.sort((a, b) => ORDEM_NAIPE[a.suit] !== ORDEM_NAIPE[b.suit] ? ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit] : ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank]);
   else if (tipo === 'trinca') m.sort((a, b) => ORDEM_NUM[a.rank] !== ORDEM_NUM[b.rank] ? ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank] : ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit]);
   else if (tipo === 'sequencia') {
@@ -1085,7 +1147,7 @@ window.organizarMao = function(tipo) {
     s3.sort(cmp); s2.sort(cmp);
     sol.sort((a, b) => ORDEM_NUM[a.rank] !== ORDEM_NUM[b.rank] ? ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank] : ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit]);
     const nm = []; s3.forEach(r => nm.push(...r)); s2.forEach(r => nm.push(...r)); nm.push(...sol);
-    G.jogadores[0].mao = nm;
+    G.jogadores[meuIdx()].mao = nm;
   }
   G.selecionadas.clear(); render();
 };
@@ -1094,7 +1156,7 @@ window.continuarJogoSalvo = function() {
   document.getElementById('modal-jogo').classList.remove('aberto');
   if (carregarEstadoSalvo()) {
     render();
-    if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(1000);
+    if (cfg.modoJogo === 'AIvAI' || (cfg.modoJogo === 'PvAI' && G.turno === 1)) scheduleCpuTurn(1000);
   } else novoJogo();
 };
 
@@ -1110,7 +1172,7 @@ window.abrirInspecao = function(tipo) {
   if (!cfg.inspecao) return;
   let cards = [], tit = '';
   if (tipo === 'monte') { cards = G.monte; tit = `Monte (${cards.length})`; }
-  else if (tipo === 'cpu') { cards = G.jogadores[1].mao; tit = `CPU`; }
+  else if (tipo === 'cpu') { cards = G.jogadores[oponenteIdx()].mao; tit = cfg.modoJogo === 'PvP' ? G.jogadores[oponenteIdx()].nome : 'CPU'; }
   document.getElementById('inspecao-titulo').textContent = tit;
   const el = document.getElementById('inspecao-conteudo'); el.innerHTML = '';
   if (!cards.length) el.innerHTML = '<p>Vazio</p>'; else { let a = [...cards]; if (tipo !== 'cpu') a.reverse(); a.forEach(c => el.appendChild(cardEl(c, { static: true }))); }
@@ -1135,14 +1197,12 @@ window.abrirRegrasJogo = function() {
       <li><b>TRINCA:</b> 3 cartas do mesmo valor, todas de naipes diferentes. Ex: 7♠ 7♥ 7♦</li>
       <li><b>SEQUÊNCIA:</b> 3 cartas do mesmo naipe em ordem consecutiva. Ex: 5♣ 6♣ 7♣</li>
     </ul>
-    <p><b>Importante:</b> a trinca exige 3 naipes diferentes (não pode ter 2 do mesmo naipe).</p>
+    <p><b>Importante:</b> a trinca exige 3 naipes diferentes.</p>
     <h3>Jogada Virada (Blefe)</h3>
-    <p>Baixe 3 cartas fechadas. Se válidas = melê real oculto (conta). Se inválidas = blefe (cartas voltam à mão ao revelar).</p>
-    <h3>Encaixe</h3>
-    <p><b>Não existe encaixe</b> no Batidinha. Depois de baixado, um jogo não recebe mais cartas.</p>
+    <p>Baixe 3 cartas fechadas. Se válidas = melê real oculto. Se inválidas = blefe (voltam à mão ao revelar).</p>
     <h3>Como Vencer</h3>
-    <p>Esvazie sua mão com <b>3 jogos reais baixados</b>. Ao descartar a última carta e ter 3 jogos reais na mesa, você <b>BATE</b> automaticamente.</p>
-    <p>Se o monte esvaziar: quem tiver menos cartas na mão vence. Empate em cartas? Quem tiver mais jogos reais vence.</p>
+    <p>Esvazie sua mão com <b>3 jogos reais baixados</b>. Ao descartar a última carta e ter 3 jogos reais, você <b>BATE</b> automaticamente.</p>
+    <p>Se o monte esvaziar: quem tiver menos cartas na mão vence. Empate? Quem tiver mais jogos reais vence.</p>
   `;
   document.getElementById('modal-regras-jogo').classList.add('aberto');
 };
@@ -1298,6 +1358,111 @@ function bindSlider(rid, nid, k) {
   n.addEventListener('input', () => { r.value = n.value; cfg[k] = +n.value; });
 }
 
+// ==================== 🆕 ONLINE (TRYSTERO) ====================
+async function loadTrystero() {
+  if (!window._trysteroJoin) {
+    const mod = await import('https://esm.sh/trystero@0.21.6');
+    window._trysteroJoin = mod.joinRoom;
+  }
+  return window._trysteroJoin;
+}
+
+window.onlineCriarSala = async function() {
+  const code = prompt('Nome da sala (você vai passar pro seu amigo):');
+  if (!code) return;
+  try {
+    document.getElementById('modal-jogo').classList.remove('aberto');
+    document.getElementById('modal-cfg').classList.remove('aberto');
+    showToast('Conectando...');
+    const joinRoom = await loadTrystero();
+    online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
+    online.isHost = true; online.meuIndex = 0;
+    setupOnlineRoom(code.trim());
+    cfg.modoJogo = 'PvP';
+    cfg.nome1 = cfg.nome1 || 'Host';
+    cfg.nome2 = cfg.nome2 || 'Convidado';
+    novoJogo();
+    showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
+  } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
+};
+
+window.onlineEntrarSala = async function() {
+  const code = prompt('Nome da sala (peça pro seu amigo):');
+  if (!code) return;
+  try {
+    document.getElementById('modal-jogo').classList.remove('aberto');
+    document.getElementById('modal-cfg').classList.remove('aberto');
+    showToast('Entrando...');
+    const joinRoom = await loadTrystero();
+    online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
+    online.isHost = false; online.meuIndex = 1;
+    setupOnlineRoom(code.trim());
+    cfg.modoJogo = 'PvP';
+    cfg.nome2 = cfg.nome1 || 'Você'; // convidado usa nome1 como seu nome
+    cfg.nome1 = cfg.nome1 || 'Convidado';
+    showToast('Entrando na sala "' + code.trim() + '". Aguardando host...');
+  } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
+};
+
+function setupOnlineRoom(code) {
+  const [send, get] = online.room.makeAction('acao');
+  online.send = send;
+  get((data) => {
+    if (data && data.from === online.meuIndex) return;
+    onReceive(data);
+  });
+  online.room.onPeerJoin(() => {
+    showToast('✅ Oponente conectou!');
+    if (online.isHost && G) {
+      setTimeout(() => {
+        try {
+          const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
+          send({ type: 'init', state: clone, from: 0 });
+        } catch(e) { console.warn('init send fail', e); }
+      }, 300);
+    }
+  });
+  online.room.onPeerLeave(() => showToast('⚠️ Oponente desconectou.'));
+  online.ready = true;
+}
+
+function onReceive(data) {
+  if (!data || !data.type) return;
+  online.applyingRemote = true;
+  try {
+    switch (data.type) {
+      case 'init':
+      case 'init_state':
+        G = data.state;
+        G.selecionadas = new Set(G.selecionadas || []);
+        document.getElementById('modal-fim').classList.remove('aberto');
+        render();
+        showToast(data.type === 'init' ? '✅ Sincronizado!' : '🔄 Novo jogo do host');
+        break;
+      case 'comprar': comprarDoMonte(); render(); break;
+      case 'pegar_lixo': pegarLixo(); render(); break;
+      case 'descartar': descartar(data.turno, data.cardId); render(); break;
+      case 'baixar': {
+        const j = G.jogadores[data.turno];
+        const cards = data.cardIds.map(id => j.mao.find(c => c.id === id)).filter(Boolean);
+        if (cards.length === 3) { baixarJogada(data.turno, cards, data.tipo); render(); }
+        break;
+      }
+      case 'baixar_virada': {
+        const j = G.jogadores[data.turno];
+        const cards = data.cardIds.map(id => j.mao.find(c => c.id === id)).filter(Boolean);
+        if (cards.length === 3) { baixarBlefe(data.turno, cards); render(); }
+        break;
+      }
+      case 'devolver_lixo': devolverLixo(); render(); break;
+      case 'bater': bater(data.turno); render(); break;
+      case 'passar': passar(); render(); break;
+    }
+  } catch(e) { console.error('onReceive:', e); }
+  finally { online.applyingRemote = false; }
+}
+
+// ==================== INIT ====================
 function init() {
   carregarCfg(); carregarSerie();
   document.getElementById('btn-config').addEventListener('click', abrirConfig);
@@ -1319,7 +1484,7 @@ function init() {
   bindSlider('cfg-teslaPointerSpeed', 'cfg-teslaPointerSpeedNum', 'teslaPointerSpeed');
   bindSlider('cfg-teslaVoiceSpeed', 'cfg-teslaVoiceSpeedNum', 'teslaVoiceSpeed');
 
-  const temSave = !!localStorage.getItem('batidinha_save_v76solo');
+  const temSave = !!localStorage.getItem('batidinha_save_v80');
   document.getElementById('btn-jogo-continuar').style.display = temSave ? 'block' : 'none';
 
   if (temSave) {
