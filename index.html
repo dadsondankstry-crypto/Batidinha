@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Batidinha V7.6 (PWA)</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a3d1f">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a3d1f radial-gradient(ellipse at 50% 30%,#146b35,#062a14);color:#f2f2f2;display:flex;flex-direction:column;height:100vh;height:100dvh;font-size:14px;user-select:none;
+  --hand-w:52px; --hand-cols:6; 
+  --lixo-w:42px; --lixo-cols:12; 
+  --mesa-w:32px;
+  --esp-hand:-24px; --esp-lixo:-14px; --esp-mesa:-6px;
+}
+#topo{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
+#topo .titulo{font-weight:800;color:#ffd54f;display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px;margin:-4px}
+#topo .versao{font-size:9px;color:#a5d6a7;background:rgba(0,0,0,.3);padding:1px 4px;border-radius:4px}
+#topo .badge-espectador{display:none;background:#c62828;color:#fff;font-weight:bold;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:10px;animation:pulsa 1s infinite alternate}
+#topo .esp{flex:1}
+#topo button{background:#1b5e20;color:#fff;border:1px solid #2e7d32;border-radius:6px;padding:5px 9px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer}
+@keyframes pulsa{from{box-shadow:0 0 0 0 rgba(239,83,80,.7)}to{box-shadow:0 0 0 8px rgba(239,83,80,0)}}
+#log{flex:0 0 auto;height:42px;overflow-y:auto;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(255,255,255,.08);padding:3px 8px;font-size:10px;line-height:1.35;color:#b9dcc4}
+#log.oculto{display:none}
+#log div:last-child{color:#ffd54f;font-weight:600}
+#toast-container{position:fixed;top:50px;right:10px;z-index:200;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
+.toast{background:rgba(20,50,30,.95);border:1px solid #2e7d32;color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.5);animation:slideIn .3s ease-out;max-width:80vw}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+#barra-info{flex:0 0 auto;display:flex;justify-content:space-between;align-items:flex-end;padding:4px 8px 6px;background:rgba(0,0,0,.25);border-bottom:1px solid rgba(255,255,255,.05)}
+.info-cpu{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.info-cpu .rotulo{font-size:9px;color:#a5d6a7;font-weight:700;text-transform:uppercase}
+.card-back{width:32px;height:46px;background:linear-gradient(135deg,#1e3a8a,#3b82f6);border:1px solid #1e40af;border-radius:5px;position:relative;box-shadow:0 2px 4px rgba(0,0,0,.45)}
+.contagem{position:absolute;right:-8px;bottom:-6px;background:#000;color:#ffd54f;border-radius:8px;font-size:10px;font-weight:800;padding:1px 5px;border:1px solid #ffd54f;z-index:5}
+.info-pilhas{display:flex;gap:8px}
+.pilha-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.pilha-item .rotulo{font-size:9px;color:#a5d6a7;font-weight:700;text-transform:uppercase}
+.pilha{position:relative;width:32px;height:46px;border-radius:5px;display:flex;align-items:center;justify-content:center}
+.pilha .card{position:absolute;top:0;left:0;width:32px;height:46px}
+.pilha.vazia{border:1px dashed rgba(255,255,255,.25);background:rgba(0,0,0,.15)}
+.pilha.vazia::after{content:'—';color:rgba(255,255,255,.25);font-size:16px}
+#mesa-central{flex:1 1 auto;min-height:80px;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,.15);border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06);position:relative}
+#mesa-central:empty::after{content:'Espaço da Mesa';color:rgba(255,255,255,.15);font-size:14px;display:flex;align-items:center;justify-content:center;height:100%;width:100%;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+#floating-tools{position:absolute;top:48px;right:8px;display:none;flex-direction:column;gap:6px;z-index:10}
+.btn-tool{width:36px;height:36px;border-radius:50%;background:#2e7d32;color:#fff;border:2px solid #81c784;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.btn-tool.active{background:#c62828;border-color:#ef5350}
+.btn-mesa-completa{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:50%;background:#2e7d32;color:#fff;border:2px solid #81c784;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.meld-linha{display:flex;flex-direction:column;gap:4px}
+.meld-titulo{font-size:9px;font-weight:800;text-transform:uppercase;color:#8fd6a3;letter-spacing:.6px}
+.meld-linha.oponente .meld-titulo{color:#ef9a9a}
+.meld-scroll{display:flex;gap:8px;flex-wrap:wrap;padding:2px 0 6px}
+.meld{display:flex;align-items:center;position:relative;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:4px 6px 4px 4px;flex:0 0 auto;cursor:pointer}
+.meld .card{margin-right:var(--esp-mesa);width:var(--mesa-w);height:auto;aspect-ratio:34/48}
+.meld .card:last-of-type{margin-right:0}
+.meld-pts{margin-left:6px;font-size:9px;font-weight:800;color:#aaa;background:rgba(0,0,0,.4);border-radius:6px;padding:1px 5px}
+.meld.virada{border:2px solid #4caf50}
+.meld.virada.oculta .card{background:linear-gradient(135deg,#1e3a8a,#3b82f6);border:1px solid #1e40af}
+.meld.virada.oculta .card .r,.meld.virada.oculta .card .s{display:none}
+.meld.bluff{border:2px dashed #ff9800}
+#area-lixo{flex:0 0 auto;padding:4px 8px 8px;background:rgba(0,0,0,.3);display:flex;flex-direction:column;gap:2px}
+#area-lixo .rotulo{font-size:9px;color:#a5d6a7;font-weight:700;text-transform:uppercase}
+#area-lixo .rotulo span{color:#ffd54f;font-size:11px;margin-left:4px}
+
+/* ====== LIXO ====== */
+#lixo-cartas {
+  display: flex;
+  justify-content: flex-end; 
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  min-height: calc(var(--lixo-w)*48/34);
+  padding: 4px 8px 4px 16px;
+  background: rgba(0,0,0,.18);
+  border-radius: 6px;
+  cursor: pointer;
+}
+#lixo-cartas .card {
+  width: var(--lixo-w);
+  height: auto;
+  aspect-ratio: 34/48;
+  flex: 0 0 auto;
+  margin-left: var(--esp-lixo); 
+  border: 1px solid #aaa;
+  box-shadow: -2px 0 5px rgba(0,0,0,.7); 
+  position: relative;
+}
+#lixo-cartas .card:first-child { margin-left: 0; }
+#lixo-vazio{color:rgba(255,255,255,.35);font-size:10px;padding:12px 8px;align-self:center}
+#lixo-cartas.grid { display: grid; grid-template-columns: repeat(var(--lixo-cols), minmax(0,1fr)); gap: 4px; overflow-y: auto; padding: 4px; align-items: start; justify-content: unset; }
+#lixo-cartas.grid .card { width: 100%; max-width: var(--lixo-w); margin-left: 0; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+
+#area-jogador{flex:0 1 auto;min-height:0;background:rgba(0,0,0,.45);border-top:1px solid rgba(255,255,255,.1);padding:6px 8px;display:flex;flex-direction:column}
+.linha-info{display:flex;gap:6px;align-items:center;padding-bottom:3px;flex-wrap:wrap}
+.badge{font-size:10px;background:rgba(255,255,255,.12);padding:2px 6px;border-radius:6px}
+.badge.ok{background:#2e7d32;color:#fff}
+.badge.progresso{background:#1565c0;color:#fff;font-weight:700}
+#org-botoes{display:flex;gap:4px;margin-bottom:4px}
+#org-botoes button{flex:0 1 auto;font-size:10px;padding:4px 8px;border-radius:4px;background:#2e7d32;color:#fff;border:1px solid #4caf50;font-weight:700;cursor:pointer}
+
+#mao-jogador{
+  display:grid;
+  grid-template-columns:repeat(var(--hand-cols,6),minmax(0,1fr));
+  gap:4px;
+  justify-items:center;
+  align-content:start;
+  padding-top:14px;
+  padding-bottom:10px;
+  max-height:42vh;
+  overflow-y:auto;
+  min-height:60px;
+}
+#mao-jogador>.card{width:100%;max-width:var(--hand-w,52px);height:auto;aspect-ratio:34/48;position:relative;z-index:1;touch-action:none}
+#mao-jogador>.card.sel{z-index:5}
+#mao-jogador .vazio{grid-column:1/-1;text-align:center;color:#8fd6a3;font-size:12px;padding:16px}
+
+#mao-jogador.overlap {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start; 
+  align-items: center;
+  padding: 14px 16px 10px;
+}
+#mao-jogador.overlap > .card {
+  margin-left: var(--esp-hand); 
+  width: var(--hand-w);
+  max-width: var(--hand-w);
+  flex: 0 0 auto;
+  box-shadow: -2px 0 4px rgba(0,0,0,.6); 
+}
+#mao-jogador.overlap > .card:first-child { margin-left: 0; }
+#mao-jogador.overlap .vazio{ width: 100%; text-align: center; color:#8fd6a3; font-size:12px; padding:16px; }
+
+#acoes{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px;flex:0 0 auto}
+#acoes button{flex:1 1 auto;min-width:66px;background:#1b5e20;color:#fff;border:1px solid #388e3c;border-radius:8px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer}
+#acoes button:disabled{opacity:.32;cursor:default}
+#acoes button.bater{background:#c62828;border-color:#ef5350;animation:pulsa 1s infinite alternate}
+.aguarde{width:100%;text-align:center;color:#a5d6a7;font-size:12px;font-weight:600;padding:8px}
+.card{background:#fff;border-radius:5px;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;line-height:1;flex:0 0 auto;position:relative;box-shadow:0 2px 4px rgba(0,0,0,.45);transition:transform .12s;cursor:pointer;width:40px;height:56px}
+.card .r{font-size:14px}
+.card .s{font-size:16px}
+.card.red{color:#c62828}
+.card.sel{transform:translateY(-12px);box-shadow:0 0 0 2px #42a5f5,0 7px 12px rgba(0,0,0,.55)}
+.card.static{cursor:default}
+.card.arrastando{opacity:.6;transform:scale(1.1);z-index:999!important}
+.modal-fundo{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+.modal-fundo.aberto{display:flex}
+.modal{background:#12351f;border:1px solid #2e7d32;border-radius:14px;padding:16px;max-width:420px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.7)}
+.modal h2{margin:0 0 10px;font-size:18px;color:#ffd54f}
+.modal h3{margin:16px 0 6px;font-size:14px;color:#8fd6a3;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:4px}
+.modal p,.modal li{font-size:13px;line-height:1.5;color:#cfe9d6;margin-bottom:8px}
+.modal ul,.modal ol{padding-left:20px;margin-top:4px}
+.modal table{width:100%;border-collapse:collapse;font-size:13px}
+.modal td{padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.08)}
+.modal td:last-child{text-align:right;font-weight:700}
+.cfg-linha{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px}
+.cfg-linha input[type=text],.cfg-linha input[type=number],.cfg-linha select{background:#0a2416;color:#fff;border:1px solid #2e7d32;border-radius:6px;padding:5px 8px;font-size:13px;width:100px;text-align:center}
+.cfg-linha input[type=checkbox]{width:22px;height:22px;accent-color:#4caf50}
+.cfg-menu-btn{width:100%;text-align:left;background:#1b5e20;color:#fff;border:1px solid #2e7d32;border-radius:8px;padding:12px 16px;margin-bottom:8px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.cfg-menu-btn::after{content:'›';font-size:18px;font-weight:400}
+.btn-full{width:100%;background:#1b5e20;color:#fff;border:1px solid #388e3c;border-radius:8px;padding:12px;margin-top:10px;font-weight:700;font-size:14px;cursor:pointer}
+.btn-voltar{background:#333;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:12px;margin-bottom:10px;cursor:pointer}
+.neg{color:#ef9a9a}.pos{color:#a5d6a7}
+.btn-jogo{width:100%;text-align:left;background:#1b5e20;color:#fff;border:1px solid #2e7d32;border-radius:10px;padding:16px;margin-bottom:10px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-jogo small{color:#a5d6a7;display:block;margin-top:4px;font-weight:400}
+.cfg-slider-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;font-size:12px}
+.cfg-slider-row>.lbl{flex:1 1 100%;color:#a5d6a7;font-weight:600;margin-bottom:2px}
+.cfg-slider-row input[type=range]{flex:1;accent-color:#4caf50;min-width:0}
+.cfg-slider-row input[type=number]{width:64px;background:#0a2416;color:#fff;border:1px solid #2e7d32;border-radius:6px;padding:4px;text-align:center;font-size:13px}
+#hist-conteudo{font-size:12px;line-height:1.4;color:#cfe9d6;white-space:pre-wrap;font-family:monospace}
+#hist-conteudo div{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+#tesla-pointer{position:fixed;top:0;left:0;width:70px;height:70px;pointer-events:none;z-index:5000;transform:translate(-50%,-50%);display:none;opacity:0;transition:opacity .25s}
+#tesla-pointer .tp-outer{position:absolute;inset:0;border-radius:50%;background:rgba(255,213,79,.30);border:2px solid rgba(255,213,79,.6);box-shadow:0 0 24px rgba(255,213,79,.6),0 0 8px rgba(255,213,79,.9) inset}
+#tesla-pointer .tp-inner{position:absolute;inset:20px;border-radius:50%;background:rgba(255,213,79,.55)}
+#tesla-pointer.clicking .tp-inner{animation:tp-punch .4s ease-out}
+@keyframes tp-punch{0%{transform:scale(1);opacity:.8}50%{transform:scale(1.4);opacity:1}100%{transform:scale(1);opacity:.55}}
+#tesla-pointer.clicking::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid rgba(255,213,79,.9);animation:tp-ripple .7s ease-out}
+@keyframes tp-ripple{0%{transform:scale(1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+.tesla-target-flash{outline:3px solid #ffd54f!important;outline-offset:2px;box-shadow:0 0 18px rgba(255,213,79,.9)!important}
+</style>
+</head>
+<body>
+
+<div id="tesla-pointer"><div class="tp-outer"></div><div class="tp-inner"></div></div>
+
+<div id="topo">
+  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V7.6</span></span>
+  <span class="badge" id="badge-serie" style="margin-left:10px;background:rgba(255,213,79,.15);color:#ffd54f;font-weight:800;padding:2px 8px;border-radius:6px;font-size:11px">(0 - 0)</span>
+  <span class="badge-espectador" id="badge-espectador">👁️ ESPECTADOR</span>
+  <span class="esp"></span>
+  <button id="btn-fullscreen" title="Tela Cheia">⛶</button>
+  <button id="btn-config" title="Menu">⚙️</button>
+</div>
+
+<div id="toast-container"></div>
+<div id="log" class="oculto"></div>
+
+<div id="barra-info">
+  <div class="info-cpu" onclick="abrirInspecao('cpu')">
+    <div class="rotulo">CPU</div>
+    <div class="card-back"><div class="contagem" id="cartas-cpu">9</div></div>
+  </div>
+  <div class="info-pilhas">
+    <div class="pilha-item" onclick="abrirInspecao('monte')"><div class="rotulo">Monte</div><div class="pilha" id="p-monte"></div></div>
+  </div>
+</div>
+
+<div id="mesa-central">
+  <div id="floating-tools">
+    <button class="btn-tool" id="btn-tool-inspect" onclick="toggleTest('inspecao')" title="Inspeção">🔍</button>
+    <button class="btn-tool" id="btn-tool-draw" onclick="toggleTest('unlimitedDraw')" title="Compra Ilimitada">♾️</button>
+    <button class="btn-tool" id="btn-tool-discard" onclick="toggleTest('unlimitedDiscard')" title="Descarte Ilimitado">🗑️</button>
+    <button class="btn-tool" id="btn-tool-cheat" onclick="toggleTest('cheatMode')" title="Modo Cheat">👁️</button>
+  </div>
+  <button class="btn-mesa-completa" id="btn-ver-mesa" title="Ver mesa">🔍</button>
+</div>
+
+<div id="area-lixo">
+  <div class="rotulo">Lixo <span id="lixo-contador">0</span></div>
+  <div id="lixo-cartas" onclick="abrirModalLixo()"></div>
+</div>
+
+<div id="area-jogador">
+  <div class="linha-info">
+    <b id="nome-jogador">Você</b>
+    <span class="badge" id="cartas-jogador">9 cartas</span>
+    <span class="badge progresso" id="badge-vitoria">0/3 JOGOS</span>
+  </div>
+  <div id="org-botoes" style="display:none">
+    <button onclick="organizarMao('naipe')">Naipes</button>
+    <button onclick="organizarMao('sequencia')">Sequência</button>
+    <button onclick="organizarMao('trinca')">Trinca</button>
+  </div>
+  <div id="mao-jogador"></div>
+  <div id="acoes"></div>
+</div>
+
+<div class="modal-fundo" id="modal-jogo">
+  <div class="modal">
+    <h2>Batidinha</h2>
+    <button class="btn-jogo" id="btn-jogo-continuar" style="display:none;color:#ffd54f;border-color:#ffd54f" onclick="continuarJogoSalvo()">
+      <b>▶️ Continuar Jogo Salvo</b><small>Retomar a partida onde parou.</small>
+    </button>
+    <button class="btn-jogo" onclick="novoJogoERender()">
+      <b>🎮 Novo Jogo</b><small>Começar uma nova partida.</small>
+    </button>
+    <button class="btn-voltar" onclick="document.getElementById('modal-jogo').classList.remove('aberto')" style="width:100%;margin-top:6px">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-fim">
+  <div class="modal">
+    <h2 id="fim-titulo">Fim de Jogo</h2>
+    <div id="fim-conteudo"></div>
+    <button id="fim-btn" style="width:100%;margin-top:12px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Continuar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-cfg">
+  <div class="modal">
+    <div id="cfg-header">
+      <h2 id="cfg-titulo">Menu</h2>
+      <button class="btn-voltar" id="cfg-voltar" style="display:none" onclick="voltarMenuCfg()">⬅ Voltar</button>
+    </div>
+    <div id="cfg-menu-principal">
+      <button class="cfg-menu-btn" onclick="abrirSecaoCfg('jogadores')">Jogadores</button>
+      <button class="cfg-menu-btn" onclick="abrirSecaoCfg('log')">Log e Privacidade</button>
+      <button class="cfg-menu-btn" onclick="abrirSecaoCfg('interface')">Interface</button>
+      <button class="cfg-menu-btn" onclick="abrirSecaoCfg('tesla')" style="color:#ffd54f;border-color:#ffd54f">🤖 SISTEMA TESLA</button>
+      <button class="cfg-menu-btn" onclick="abrirRegrasJogo()">📋 Regras do Batidinha</button>
+      <hr style="border-color:rgba(255,255,255,.1);margin:16px 0">
+      <button class="cfg-menu-btn" onclick="abrirHistorico()" style="color:#ffd54f">📜 Histórico</button>
+      <button class="cfg-menu-btn" onclick="confirmarNovoJogo()" style="color:#ef9a9a">🔄 Iniciar Novo Jogo</button>
+      <button class="cfg-menu-btn" onclick="confirmarZerarPlacar()" style="color:#ef9a9a">🧹 Zerar Placar/Série</button>
+      <button class="cfg-menu-btn" id="btn-menu-admin" onclick="abrirSecaoCfg('admin')" style="color:#ffd54f;border-color:#ffd54f;display:none">🔐 Admin</button>
+    </div>
+    <div id="cfg-sec-jogadores" class="cfg-secao" style="display:none">
+      <div class="cfg-linha"><span>Seu nome</span><input type="text" id="cfg-nome1" maxlength="14"></div>
+      <div class="cfg-linha"><span>Nome do oponente</span><input type="text" id="cfg-nome2" maxlength="14"></div>
+      <div class="cfg-linha"><span>Modo de Jogo</span>
+        <select id="cfg-modoJogo"><option value="PvAI">Jogador vs CPU</option><option value="AIvAI">CPU vs CPU (Espectador)</option></select>
+      </div>
+      <div class="cfg-linha"><span>Série</span>
+        <select id="cfg-serie"><option value="0">∞ (Contínuo)</option><option value="1">MD1</option><option value="3">MD3</option><option value="5">MD5</option><option value="7">MD7</option><option value="9">MD9</option><option value="11">MD11</option></select>
+      </div>
+    </div>
+    <div id="cfg-sec-log" class="cfg-secao" style="display:none">
+      <div class="cfg-linha"><span>Ver carta puxada/descartada</span><input type="checkbox" id="cfg-verCarta"></div>
+      <div class="cfg-linha"><span>Exibir painel de log</span><input type="checkbox" id="cfg-logVisivel"></div>
+      <div class="cfg-linha"><span>Exibir toasts</span><input type="checkbox" id="cfg-toastAtivo"></div>
+    </div>
+    <div id="cfg-sec-interface" class="cfg-secao" style="display:none">
+      <h3>Tamanhos</h3>
+      <div class="cfg-linha"><span>Largura Carta (Mão)</span><input type="number" id="cfg-hand-w" min="30" max="100" step="2"></div>
+      <div class="cfg-linha"><span>Cartas/linha (Mão)</span><input type="number" id="cfg-hand-cols" min="3" max="12"></div>
+      <div class="cfg-linha"><span>Largura Carta (Lixo)</span><input type="number" id="cfg-lixo-w" min="20" max="80" step="2"></div>
+      <div class="cfg-linha"><span>Largura Carta (Mesa)</span><input type="number" id="cfg-mesa-w" min="15" max="60" step="2"></div>
+      
+      <h3>Espaçamento (Sobreposição)</h3>
+      <div class="cfg-linha"><span>Espaço Mão (px)</span><input type="number" id="cfg-esp-hand" min="-80" max="0" step="1"></div>
+      <div class="cfg-linha"><span>Espaço Lixo (px)</span><input type="number" id="cfg-esp-lixo" min="-80" max="0" step="1"></div>
+      <div class="cfg-linha"><span>Espaço Mesa (px)</span><input type="number" id="cfg-esp-mesa" min="-80" max="0" step="1"></div>
+
+      <h3>Layout</h3>
+      <div class="cfg-linha"><span>Mão em Cascata (Sobreposta)</span><input type="checkbox" id="cfg-maoOverlap"></div>
+      <div class="cfg-linha"><span>Lixo quebra linha?</span><input type="checkbox" id="cfg-lixo-quebra"></div>
+      <div class="cfg-linha"><span>Cartas/linha (Lixo)</span><input type="number" id="cfg-lixo-cols" min="3" max="15"></div>
+      <div class="cfg-linha"><span>Exibir botões de organizar</span><input type="checkbox" id="cfg-orgBotoes"></div>
+    </div>
+    <div id="cfg-sec-tesla" class="cfg-secao" style="display:none">
+      <p style="font-size:12px;color:#cfe9d6;margin-bottom:10px">SISTEMA TESLA: Telespectador com Explicação, Simulação e Lógica Automática.</p>
+      <div class="cfg-linha"><span>Ponteiro visual</span><input type="checkbox" id="cfg-teslaPointer"></div>
+      <div class="cfg-linha"><span>Toasts explicativos</span><input type="checkbox" id="cfg-teslaToasts"></div>
+      <div class="cfg-linha"><span>Voz (TTS pt-BR)</span><input type="checkbox" id="cfg-teslaVoice"></div>
+      <div class="cfg-linha"><span>Quem fala</span>
+        <select id="cfg-teslaVoiceMode"><option value="mine">Só minhas jogadas</option><option value="both">Eu e adversário</option></select>
+      </div>
+      <h3>Velocidades</h3>
+      <div class="cfg-slider-row"><span class="lbl">CPU / ações</span><input type="range" id="cfg-teslaSpeed" min="0.1" max="3" step="0.05"><input type="number" id="cfg-teslaSpeedNum" min="0.1" max="3" step="0.05"></div>
+      <div class="cfg-slider-row"><span class="lbl">Ponteiro</span><input type="range" id="cfg-teslaPointerSpeed" min="0.1" max="3" step="0.05"><input type="number" id="cfg-teslaPointerSpeedNum" min="0.1" max="3" step="0.05"></div>
+      <div class="cfg-slider-row"><span class="lbl">Fala</span><input type="range" id="cfg-teslaVoiceSpeed" min="0.5" max="2" step="0.05"><input type="number" id="cfg-teslaVoiceSpeedNum" min="0.5" max="2" step="0.05"></div>
+      <button class="btn-full" onclick="testarVoz()" style="background:#1b5e20;margin-top:15px">🔊 Testar voz</button>
+    </div>
+    <div id="cfg-sec-admin" class="cfg-secao" style="display:none">
+      <p style="font-size:12px;color:#cfe9d6;margin-bottom:10px">Ferramentas de teste.</p>
+      <div class="cfg-linha"><span>Inspeção de Cartas</span><input type="checkbox" id="cfg-inspecao"></div>
+      <div class="cfg-linha"><span>Compra Ilimitada</span><input type="checkbox" id="cfg-unlimitedDraw"></div>
+      <div class="cfg-linha"><span>Descarte Ilimitado</span><input type="checkbox" id="cfg-unlimitedDiscard"></div>
+      <div class="cfg-linha"><span>Modo Cheat</span><input type="checkbox" id="cfg-cheatMode"></div>
+      <button class="btn-full" id="btn-toggle-tools" onclick="toggleFloatingTools()" style="background:#1b5e20;margin-top:15px">Ocultar Ícones</button>
+      <button class="btn-full" onclick="ocultarAdmin()" style="background:#333;margin-top:15px">Ocultar Admin</button>
+    </div>
+    <button id="cfg-salvar" style="width:100%;margin-top:16px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Salvar e Voltar ao Jogo</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-confirm">
+  <div class="modal">
+    <h2 id="confirm-titulo">Confirmação</h2>
+    <p id="confirm-msg" style="font-size:14px;color:#cfe9d6;margin-bottom:20px"></p>
+    <div style="display:flex;gap:10px">
+      <button id="confirm-cancel" style="background:#444;flex:1;border:none;color:#fff;padding:12px;border-radius:9px;cursor:pointer">Cancelar</button>
+      <button id="confirm-ok" style="background:#c62828;flex:1;border:none;color:#fff;padding:12px;border-radius:9px;cursor:pointer">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-senha">
+  <div class="modal">
+    <h2>Senha Admin</h2>
+    <input type="password" id="senha-input" inputmode="numeric" onkeydown="if(event.key==='Enter')verificarSenha()" style="width:100%;padding:10px;border-radius:6px;border:1px solid #2e7d32;background:#0a2416;color:#fff;text-align:center;font-size:20px;letter-spacing:4px;margin-bottom:15px" placeholder="****">
+    <div style="display:flex;gap:10px">
+      <button onclick="document.getElementById('modal-senha').classList.remove('aberto')" style="background:#444;flex:1;border:none;color:#fff;padding:12px;border-radius:9px;cursor:pointer">Cancelar</button>
+      <button onclick="verificarSenha()" style="background:#2e7d32;flex:1;border:none;color:#fff;padding:12px;border-radius:9px;cursor:pointer">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-acao-virada">
+  <div class="modal">
+    <h2>Jogada Virada</h2>
+    <p style="font-size:13px;color:#cfe9d6;margin-bottom:15px">O que deseja fazer?</p>
+    <button onclick="acaoVirada('revelar')" style="width:100%;margin-bottom:10px;background:#1b5e20;color:#fff;border:1px solid #4caf50;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Virar (Revelar)</button>
+    <button onclick="acaoVirada('voltar')" style="width:100%;margin-bottom:10px;background:#c62828;color:#fff;border:1px solid #ef5350;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Voltar para a Mão</button>
+    <button onclick="document.getElementById('modal-acao-virada').classList.remove('aberto')" style="width:100%;background:#444;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-regras-jogo">
+  <div class="modal">
+    <h2>Regras do Batidinha</h2>
+    <div id="regras-jogo-conteudo"></div>
+    <button onclick="document.getElementById('modal-regras-jogo').classList.remove('aberto')" style="width:100%;margin-top:16px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Entendido</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-lixo">
+  <div class="modal">
+    <h2>Lixo Completo</h2>
+    <div id="modal-lixo-conteudo" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+    <button onclick="document.getElementById('modal-lixo').classList.remove('aberto')" style="width:100%;margin-top:12px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-hist">
+  <div class="modal">
+    <h2>Histórico Completo</h2>
+    <div id="hist-conteudo"></div>
+    <button onclick="document.getElementById('modal-hist').classList.remove('aberto')" style="width:100%;margin-top:12px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-mesa">
+  <div class="modal">
+    <h2>Jogadas na Mesa</h2>
+    <div id="modal-mesa-conteudo"></div>
+    <button onclick="document.getElementById('modal-mesa').classList.remove('aberto')" style="width:100%;margin-top:12px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Fechar</button>
+  </div>
+</div>
+
+<div class="modal-fundo" id="modal-inspecao">
+  <div class="modal">
+    <h2 id="inspecao-titulo">Inspeção</h2>
+    <div id="inspecao-conteudo" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+    <button onclick="document.getElementById('modal-inspecao').classList.remove('aberto')" style="width:100%;margin-top:12px;background:#2e7d32;color:#fff;border:none;border-radius:9px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Fechar</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+
+const SUITS = ['♠','♥','♦','♣'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const RED_SUITS = new Set(['♥','♦']);
+const ORDEM_NAIPE = { '♥':1,'♦':2,'♠':3,'♣':4 };
+const ORDEM_NUM = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14 };
+
+let cfg = {
+  nome1:'Você',nome2:'CPU',
+  serie:0,
+  verCarta:false,logVisivel:false,toastAtivo:false,
+  orgBotoesVisiveis:false,
+  
+  // NOVOS PADRÕES
+  handWidth:52, handCols:6, 
+  lixoWidth:42, lixoCols:12,
+  mesaWidth:32,
+  maoOverlap:false,
+  espHand:-24, espLixo:-14, espMesa:-6,
+
+  modoJogo:'PvAI',
+  inspecao:false,unlimitedDraw:false,unlimitedDiscard:false,cheatMode:false,
+  isAdmin:false,showFloatingTools:false,isAdminVisible:false,
+  teslaSpeed:0.60,teslaPointerSpeed:1.00,teslaVoiceSpeed:1.00,
+  teslaVoice:false,teslaVoiceMode:'both',teslaPointer:false,teslaToasts:false
+};
+
+function carregarCfg() { try { const r = localStorage.getItem('batidinha_cfg_v76solo'); if (r) Object.assign(cfg, JSON.parse(r)); } catch(e) {} }
+function salvarCfg() { try { localStorage.setItem('batidinha_cfg_v76solo', JSON.stringify(cfg)); } catch(e) {} }
+
+let G = null;
+let meldIdCounter = 0;
+let serieVitorias = [0, 0];
+let isProcessingAI = false;
+let teslaGeneration = 0;
+let acaoViradaMeldId = null;
+let secretClicks = 0, secretTimer = null;
+
+function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v76solo'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
+function salvarSerie() { try { localStorage.setItem('batidinha_serie_v76solo', JSON.stringify(serieVitorias)); } catch(e) {} }
+
+function salvarEstado() { if (!G) return; try { localStorage.setItem('batidinha_save_v76solo', JSON.stringify({ ...G, selecionadas: [...G.selecionadas], serieVitorias })); } catch(e) {} }
+function carregarEstadoSalvo() {
+  try {
+    const r = localStorage.getItem('batidinha_save_v76solo');
+    if (r) {
+      const l = JSON.parse(r);
+      if (l && l.jogadores) {
+        l.selecionadas = new Set(l.selecionadas || []);
+        if (l.serieVitorias) serieVitorias = l.serieVitorias;
+        G = l; return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function rankName(pos) { if (pos === 14) return 'A'; if (pos < 1 || pos > 13) return null; return RANKS[pos - 1]; }
+function posDoRank(rank) { return RANKS.indexOf(rank) + 1; }
+function pontosCarta(rank) { if (rank === 'A') return 15; if (rank === '2') return 10; return posDoRank(rank) <= 7 ? 5 : 10; }
+function criarBaralho() { const cs = []; let id = 0; for (let d = 0; d < 2; d++) for (const s of SUITS) for (const r of RANKS) cs.push({ id: id++, rank: r, suit: s, deck: d }); return cs; }
+function embaralhar(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+// ============ VERIFICAÇÕES ============
+function verificarTrinca(cards) {
+  if (cards.length !== 3) return { valida: false, motivo: 'Exatamente 3 cartas' };
+  if (!cards.every(c => c.rank === cards[0].rank)) return { valida: false, motivo: 'Valores diferentes' };
+  const su = {};
+  for (const c of cards) { su[c.suit] = (su[c.suit] || 0) + 1; if (su[c.suit] > 1) return { valida: false, motivo: 'Os 3 naipes devem ser diferentes' }; }
+  return { valida: true, tipo: 'trinca', rank: cards[0].rank, ordenadas: cards.map(c => ({ card: c, wild: false })) };
+}
+
+function verificarSequencia(cards) {
+  if (cards.length !== 3) return { valida: false, motivo: 'Exatamente 3 cartas' };
+  const naipe = cards[0].suit;
+  if (!cards.every(c => c.suit === naipe)) return { valida: false, motivo: 'Naipes diferentes' };
+  for (let start = 1; start <= 12; start++) {
+    const need = [rankName(start), rankName(start+1), rankName(start+2)];
+    const pool = [...cards], ord = []; let ok = true;
+    for (const r of need) { const i = pool.findIndex(c => c.rank === r); if (i === -1) { ok = false; break; } ord.push(pool.splice(i,1)[0]); }
+    if (ok) return { valida: true, tipo: 'sequencia', naipe, startRank: start, ordenadas: ord.map(c => ({ card: c, wild: false })) };
+  }
+  return { valida: false, motivo: 'Não forma sequência' };
+}
+
+function verificarJogada(cards) {
+  const t = verificarTrinca(cards); if (t.valida) return t;
+  const s = verificarSequencia(cards); if (s.valida) return s;
+  return { valida: false, motivo: 'Jogada inválida' };
+}
+
+function novoJogo() {
+  isProcessingAI = false; teslaGeneration++; hidePointer();
+  const deck = embaralhar(criarBaralho());
+  G = {
+    jogadores: [
+      { nome: cfg.nome1, mao: [], melds: [], isCPU: cfg.modoJogo === 'AIvAI' },
+      { nome: cfg.nome2, mao: [], melds: [], isCPU: true }
+    ],
+    monte: [], lixo: [],
+    turno: Math.random() < 0.5 ? 0 : 1, fase: 'draw', finalizado: false,
+    selecionadas: new Set(), logs: [], turnoInicial: 0,
+    primeiraPuxadaAtiva: false, ultimaPuxadaId: null, lixoOriginal: []
+  };
+  G.turnoInicial = G.turno;
+  G.primeiraPuxadaAtiva = (G.turnoInicial === 0);
+  meldIdCounter = 0;
+  for (let i = 0; i < 9; i++) { G.jogadores[0].mao.push(deck.pop()); G.jogadores[1].mao.push(deck.pop()); }
+  G.monte = deck;
+  addLog(`Batidinha: novo jogo! ${G.jogadores[G.turno].nome} começa.`);
+  render();
+  if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(900);
+}
+
+function novoJogoERender() { document.getElementById('modal-jogo').classList.remove('aberto'); novoJogo(); }
+
+function addLog(msg) { G.logs.push(msg); if (G.logs.length > 100) G.logs.shift(); renderLog(); if (cfg.toastAtivo) showToast(msg); salvarEstado(); }
+function renderLog() { const el = document.getElementById('log'); el.classList.toggle('oculto', !cfg.logVisivel); el.innerHTML = ''; G.logs.slice(-12).forEach(m => { const d = document.createElement('div'); d.textContent = m; el.appendChild(d); }); el.scrollTop = el.scrollHeight; }
+function showToast(msg) { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; c.appendChild(t); setTimeout(() => { t.style.animation = 'fadeOut 0.3s ease-in forwards'; setTimeout(() => t.remove(), 300); }, 3000); }
+
+function comprarDoMonte() {
+  if (G.fase !== 'draw' || G.finalizado) return;
+  if (G.monte.length === 0) { fimPorMonte(); return; }
+  const c = G.monte.pop(); G.jogadores[G.turno].mao.push(c);
+  if (G.turno === 0) G.ultimaPuxadaId = c.id;
+  if (G.turno === 0 && cfg.unlimitedDraw) {} else G.fase = 'play';
+  addLog(cfg.verCarta ? `${G.jogadores[G.turno].nome} puxou ${c.rank}${c.suit}` : `${G.jogadores[G.turno].nome} puxou do monte`);
+}
+
+function pegarLixo() {
+  if (G.fase !== 'draw' || G.finalizado) return;
+  if (G.lixo.length === 0) { addLog('Lixo vazio.'); return; }
+  const j = G.jogadores[G.turno];
+  const card = G.lixo[G.lixo.length - 1]; 
+  if (G.turno === 0) G.lixoOriginal = [card.id];
+  G.lixo.pop(); 
+  j.mao.push(card); G.fase = 'play';
+  addLog(`${j.nome} pegou ${card.rank}${card.suit} do lixo`);
+}
+
+function devolverLixo() {
+  const j = G.jogadores[0];
+  const cartas = G.lixoOriginal.map(id => j.mao.find(c => c.id === id)).filter(Boolean);
+  if (cartas.length !== G.lixoOriginal.length) return;
+  j.mao = j.mao.filter(c => !G.lixoOriginal.includes(c.id));
+  G.lixo.push(...cartas);
+  G.lixoOriginal = []; G.fase = 'draw'; G.selecionadas.clear();
+  addLog('Lixo devolvido.'); render();
+}
+
+function baixarJogada(idx, cards, tipo, virada = false) {
+  const j = G.jogadores[idx];
+  const res = tipo === 'trinca' ? verificarTrinca(cards) : verificarSequencia(cards);
+  if (!res.valida) { addLog(`Erro: ${res.motivo}`); return false; }
+  const ids = new Set(cards.map(c => c.id));
+  j.mao = j.mao.filter(c => !ids.has(c.id));
+  j.melds.push({ id: ++meldIdCounter, type: tipo, cards: res.ordenadas, rank: res.rank || null, suit: res.naipe || null, startRank: res.startRank || 0, owner: idx, virada, bluff: false });
+  const desc = tipo === 'trinca' ? `trinca de ${res.rank}` : `sequência de ${res.naipe}`;
+  addLog(`${j.nome} baixou ${desc}${virada ? ' (virada)' : ''}`);
+  return true;
+}
+
+function baixarBlefe(idx, cards) {
+  const j = G.jogadores[idx];
+  const tr = verificarTrinca(cards);
+  const sq = verificarSequencia(cards);
+  const valida = tr.valida || sq.valida;
+  const ids = new Set(cards.map(c => c.id));
+  j.mao = j.mao.filter(c => !ids.has(c.id));
+  const meld = { id: ++meldIdCounter, type: valida ? (tr.valida ? 'trinca' : 'sequencia') : 'bluff',
+    cards: tr.valida ? tr.ordenadas : (sq.valida ? sq.ordenadas : cards.map(c => ({ card: c, wild: false }))),
+    rank: tr.rank || null, suit: sq.naipe || null, startRank: sq.startRank || 0, owner: idx, virada: true, bluff: !valida };
+  j.melds.push(meld);
+  if (valida) { const desc = tr.valida ? `trinca de ${tr.rank}` : `sequência de ${sq.naipe}`; addLog(`${j.nome} baixou ${desc} (virada)`); }
+  else addLog(`${j.nome} baixou um BLEFE (virado)`);
+  return true;
+}
+
+function descartar(idx, cardId) {
+  if (G.finalizado) return false;
+  const j = G.jogadores[idx];
+  const card = j.mao.find(c => c.id === cardId); if (!card) return false;
+  j.mao = j.mao.filter(c => c.id !== cardId); G.lixo.push(card);
+  addLog(`${j.nome} descartou ${card.rank}${card.suit}`);
+  if (idx === 0 && G.primeiraPuxadaAtiva && G.ultimaPuxadaId === cardId) {
+    G.primeiraPuxadaAtiva = false;
+    addLog('Mesma carta descartada. Pode puxar novamente.');
+    G.fase = 'draw'; render(); return true;
+  } else if (idx === 0 && G.primeiraPuxadaAtiva) G.primeiraPuxadaAtiva = false;
+  if (podeBater(idx)) { bater(idx); return true; }
+  if (idx === 0 && cfg.unlimitedDiscard) render(); else finalizarTurno();
+  return true;
+}
+
+function passar() { if (G.jogadores[G.turno].mao.length > 0) return; addLog(`${G.jogadores[G.turno].nome} passou.`); finalizarTurno(); }
+
+function finalizarTurno() {
+  if (G.finalizado) return;
+  if (G.turno === 0) G.primeiraPuxadaAtiva = false;
+  G.turno = 1 - G.turno; G.fase = 'draw'; G.selecionadas.clear(); G.lixoOriginal = []; render();
+  if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(750);
+}
+
+function podeBater(idx) {
+  const j = G.jogadores[idx];
+  if (j.mao.length !== 0) return false;
+  const reais = j.melds.filter(m => !m.bluff);
+  return reais.length >= 3 && reais.every(m => m.cards.length === 3);
+}
+
+function bater(idx) {
+  if (!podeBater(idx)) { addLog('Não pode bater.'); return false; }
+  G.jogadores[idx].melds?.forEach(m => { if (m.virada && !m.bluff) m.virada = false; });
+  G.finalizado = true;
+  addLog(`🏆 ${G.jogadores[idx].nome} BATEU!`);
+  render(); mostrarFim(idx, false); return true;
+}
+
+function fimPorMonte() {
+  G.finalizado = true; addLog('Fim por monte vazio.');
+  const p0 = G.jogadores[0].mao.length, p1 = G.jogadores[1].mao.length;
+  const m0 = G.jogadores[0].melds.filter(m => !m.bluff).length;
+  const m1 = G.jogadores[1].melds.filter(m => !m.bluff).length;
+  let v; if (p0 !== p1) v = p0 < p1 ? 0 : 1; else v = m0 >= m1 ? 0 : 1;
+  mostrarFim(v, true);
+}
+
+function mostrarFim(vencedor, porMonte) {
+  hidePointer();
+  const nomes = [G.jogadores[0].nome, G.jogadores[1].nome];
+  const modoMD = cfg.serie > 0;
+  let serieCompleta = false, alvo = 0;
+  if (modoMD) { serieVitorias[vencedor]++; alvo = Math.ceil(cfg.serie / 2); serieCompleta = (serieVitorias[0] >= alvo || serieVitorias[1] >= alvo); }
+  else serieVitorias[vencedor]++;
+  salvarSerie();
+  const modal = document.getElementById('modal-fim');
+  const conteudo = document.getElementById('fim-conteudo');
+  const btn = document.getElementById('fim-btn');
+  document.getElementById('fim-titulo').textContent = serieCompleta ? '🏆 Fim de Série!' : '🏆 Fim de Jogo!';
+  let html = '';
+  if (modoMD) {
+    html += `<p style="text-align:center;color:#8fd6a3;font-size:14px;margin:8px 0;">Série (MD${cfg.serie}): <b style="color:#ffd54f;">${serieVitorias[0]} - ${serieVitorias[1]}</b></p>`;
+    if (serieCompleta) {
+      const campeao = serieVitorias[0] >= alvo ? nomes[0] : nomes[1];
+      html += `<p style="text-align:center;color:#ffd54f;font-weight:800;font-size:16px;margin:8px 0;">🏆 CAMPEÃO DA SÉRIE: ${campeao}</p>`;
+    }
+  }
+  html += `<h2 style="color:#ffd54f;text-align:center;">${nomes[vencedor]} venceu!</h2>`;
+  for (let i = 0; i < 2; i++) {
+    const reais = G.jogadores[i].melds.filter(m => !m.bluff).length;
+    const blefes = G.jogadores[i].melds.filter(m => m.bluff).length;
+    html += `<h3>${nomes[i]}</h3><table><tr><td>Jogos</td><td class="pos">${reais}${blefes > 0 ? ` <span style="color:#ff9800">(+${blefes}🎭)</span>` : ''}</td></tr><tr><td>Cartas na mão</td><td class="neg">${G.jogadores[i].mao.length}</td></tr></table>`;
+  }
+  if (porMonte) html += `<p style="color:#ffd54f;text-align:center;margin-top:10px;">Fim por monte vazio</p>`;
+  conteudo.innerHTML = html;
+  modal.classList.add('aberto');
+  speak(`${nomes[vencedor]} venceu!`, vencedor);
+  btn.onclick = () => {
+    modal.classList.remove('aberto');
+    if (modoMD && serieCompleta) { serieVitorias = [0, 0]; salvarSerie(); showToast('Nova série iniciada!'); }
+    novoJogo();
+  };
+}
+
+// ============ TESLA ============
+const pointerEl = () => document.getElementById('tesla-pointer');
+let pointerX = innerWidth / 2, pointerY = innerHeight / 2;
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function teslaDelay(ms) { return sleep(ms / Math.max(0.1, cfg.teslaSpeed || 0.6)); }
+function hidePointer() { const p = pointerEl(); if (!p) return; p.style.opacity = '0'; setTimeout(() => p.style.display = 'none', 250); }
+function showPointer() { const p = pointerEl(); if (!p) return; p.style.display = 'block'; p.style.opacity = '1'; }
+async function movePointerTo(el, gen) {
+  if (!cfg.teslaPointer || !el || (gen !== undefined && gen !== teslaGeneration)) return;
+  const p = pointerEl(); if (!p) return;
+  showPointer();
+  const r = el.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
+  const dur = 420 / Math.max(0.1, cfg.teslaPointerSpeed || 1);
+  const sx = pointerX, sy = pointerY, t0 = performance.now();
+  await new Promise(res => {
+    function step(t) {
+      if (gen !== undefined && gen !== teslaGeneration) return res();
+      const prog = Math.min((t - t0) / dur, 1), e = 1 - Math.pow(1 - prog, 3);
+      pointerX = sx + (tx - sx) * e; pointerY = sy + (ty - sy) * e;
+      p.style.transform = `translate(${pointerX}px,${pointerY}px) translate(-50%,-50%)`;
+      prog < 1 ? requestAnimationFrame(step) : res();
+    }
+    requestAnimationFrame(step);
+  });
+}
+async function pointerClick(el, gen) {
+  if (!cfg.teslaPointer || (gen !== undefined && gen !== teslaGeneration)) return;
+  const p = pointerEl(); if (!p) return;
+  if (el) { el.classList.add('tesla-target-flash'); setTimeout(() => el.classList.remove('tesla-target-flash'), 350); }
+  p.classList.add('clicking');
+  await sleep(400 / Math.max(0.1, cfg.teslaPointerSpeed || 1));
+  p.classList.remove('clicking');
+}
+let speechSynth = window.speechSynthesis;
+function speak(text, idx) {
+  if (!cfg.teslaVoice || !speechSynth) return Promise.resolve();
+  if (cfg.teslaVoiceMode === 'mine' && idx !== undefined && idx !== 0) return Promise.resolve();
+  return new Promise(res => {
+    try {
+      speechSynth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'pt-BR'; u.rate = Math.max(0.5, Math.min(2, cfg.teslaVoiceSpeed || 1));
+      const fb = setTimeout(res, 8000);
+      u.onend = () => { clearTimeout(fb); res(); };
+      u.onerror = () => { clearTimeout(fb); res(); };
+      speechSynth.speak(u);
+    } catch(e) { res(); }
+  });
+}
+function teslaToast(msg) { if (cfg.teslaToasts) showToast(msg); }
+async function teslaAcao(actionType, texto, idx, gen) {
+  teslaToast(`🤖 ${G.jogadores[idx].nome}: ${texto}`);
+  await speak(texto, idx);
+  if (gen !== teslaGeneration) return;
+  if (cfg.teslaPointer) {
+    const target = actionType === 'comprar' ? document.getElementById('p-monte')
+      : actionType === 'pegar_lixo' ? document.getElementById('lixo-cartas')
+      : actionType === 'baixar' ? document.querySelector('#acoes button[data-action="baixar"]')
+      : actionType === 'descartar' ? document.querySelector('#acoes button[data-action="descartar"]')
+      : actionType === 'bater' ? document.querySelector('#acoes button[data-action="bater"]')
+      : actionType === 'passar' ? document.querySelector('#acoes button[data-action="passar"]')
+      : null;
+    if (target) { await movePointerTo(target, gen); if (gen !== teslaGeneration) return; await pointerClick(target, gen); if (gen !== teslaGeneration) return; }
+  }
+  await teslaDelay(180);
+}
+function testarVoz() { if (!speechSynth) { showToast('TTS não suportado'); return; } speak('Testando voz Tesla', 0); showToast('🔊 Testando'); }
+
+function scheduleCpuTurn(delay) { setTimeout(() => teslaCpuTurn(), delay || 400); }
+async function teslaCpuTurn() {
+  if (!G || G.finalizado) return;
+  const idx = G.turno;
+  if (cfg.modoJogo === 'PvAI' && idx === 0) return;
+  if (isProcessingAI) return;
+  isProcessingAI = true;
+  const gen = ++teslaGeneration;
+  const j = G.jogadores[idx];
+
+  try {
+    if (G.fase === 'draw') {
+      if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+      let querLixo = false;
+      if (G.lixo.length > 0) {
+        const topo = G.lixo[G.lixo.length - 1];
+        const sameRank = j.mao.filter(c => c.rank === topo.rank && c.suit !== topo.suit);
+        if (sameRank.length >= 2 && new Set([topo.suit, ...sameRank.map(c => c.suit)]).size >= 3) querLixo = true;
+        if (!querLixo) {
+          const sameSuit = j.mao.filter(c => c.suit === topo.suit);
+          for (const c of sameSuit) { const d = Math.abs(posDoRank(c.rank) - posDoRank(topo.rank)); if (d === 1 || d === 2) { querLixo = true; break; } }
+        }
+      }
+      if (querLixo) {
+        await teslaAcao('pegar_lixo', `Pegar ${G.lixo[G.lixo.length-1].rank}${G.lixo[G.lixo.length-1].suit} do lixo`, idx, gen);
+        if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+        pegarLixo();
+      } else {
+        await teslaAcao('comprar', 'Comprar do monte', idx, gen);
+        if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+        comprarDoMonte();
+      }
+      render();
+      if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+      if (G.fase === 'play') scheduleCpuTurn(150);
+      isProcessingAI = false; return;
+    }
+    if (podeBater(idx)) {
+      await teslaAcao('bater', 'BATER!', idx, gen);
+      if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+      bater(idx); isProcessingAI = false; return;
+    }
+    const jogo = encontrarJogo(idx);
+    if (jogo) {
+      const tn = jogo.tipo === 'trinca' ? 'trinca' : 'sequência';
+      teslaToast(`🤖 ${j.nome}: Baixando ${tn}`);
+      if (cfg.teslaPointer) {
+        for (const c of jogo.cards) {
+          const el = document.querySelector(`#mao-jogador > .card[data-id="${c.id}"]`);
+          if (el) { await movePointerTo(el, gen); if (gen !== teslaGeneration) { isProcessingAI = false; return; } await pointerClick(el, gen); await teslaDelay(80); }
+        }
+      }
+      jogo.cards.forEach(c => G.selecionadas.add(c.id)); render();
+      if (cfg.teslaPointer) { const b = document.querySelector('#acoes button[data-action="baixar"]'); if (b) { await movePointerTo(b, gen); if (gen !== teslaGeneration) { isProcessingAI = false; return; } await pointerClick(b, gen); } }
+      await speak(`Baixando ${tn}`, idx);
+      if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+      baixarJogada(idx, jogo.cards, jogo.tipo);
+      G.selecionadas.clear(); render();
+      await teslaDelay(250); scheduleCpuTurn(150); isProcessingAI = false; return;
+    }
+    if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+    if (j.mao.length === 0) {
+      await teslaAcao('passar', 'Mão vazia sem condições. Passar.', idx, gen);
+      if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+      passar(); isProcessingAI = false; return;
+    }
+    const pior = escolherPior(j);
+    const vaiBater = (j.mao.length === 1 && j.melds.filter(m => !m.bluff).length >= 3);
+    teslaToast(`🤖 ${j.nome}: ${vaiBater ? 'Descartando última e BATER!' : 'Descartando ' + pior.rank + pior.suit}`);
+    if (cfg.teslaPointer) { const el = document.querySelector(`#mao-jogador > .card[data-id="${pior.id}"]`); if (el) { await movePointerTo(el, gen); if (gen !== teslaGeneration) { isProcessingAI = false; return; } await pointerClick(el, gen); } }
+    G.selecionadas.clear(); G.selecionadas.add(pior.id); render();
+    await speak(vaiBater ? 'Descartando e batendo!' : `Descartando ${pior.rank}${pior.suit}`, idx);
+    if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+    if (cfg.teslaPointer) { const b = document.querySelector('#acoes button[data-action="descartar"]'); if (b) { await movePointerTo(b, gen); if (gen !== teslaGeneration) { isProcessingAI = false; return; } await pointerClick(b, gen); } }
+    await teslaDelay(200);
+    if (gen !== teslaGeneration || !G || G.finalizado) { isProcessingAI = false; return; }
+    descartar(idx, pior.id); isProcessingAI = false;
+    if (!G.finalizado) hidePointer();
+  } catch(e) { console.error(e); isProcessingAI = false; }
+}
+
+function encontrarJogo(idx) {
+  const mao = G.jogadores[idx].mao;
+  const grupos = {};
+  for (const c of mao) (grupos[c.rank] = grupos[c.rank] || []).push(c);
+  for (const r in grupos) {
+    if (grupos[r].length >= 3) {
+      const bySuit = {};
+      for (const c of grupos[r]) { if (!bySuit[c.suit]) bySuit[c.suit] = c; }
+      const suits = Object.keys(bySuit);
+      if (suits.length >= 3) return { cards: [bySuit[suits[0]], bySuit[suits[1]], bySuit[suits[2]]], tipo: 'trinca' };
+    }
+  }
+  for (const naipe of SUITS) {
+    const cards = mao.filter(c => c.suit === naipe);
+    if (cards.length < 3) continue;
+    cards.sort((a, b) => posDoRank(a.rank) - posDoRank(b.rank));
+    for (let i = 0; i + 2 < cards.length; i++) {
+      const r1 = posDoRank(cards[i].rank);
+      const r2 = posDoRank(cards[i+1].rank);
+      const r3 = posDoRank(cards[i+2].rank);
+      if (r2 === r1 + 1 && r3 === r2 + 1) return { cards: [cards[i], cards[i+1], cards[i+2]], tipo: 'sequencia' };
+    }
+  }
+  return null;
+}
+
+function escolherPior(j) {
+  if (j.mao.length === 0) return null;
+  let pior = j.mao[0], ps = Infinity;
+  for (const c of j.mao) {
+    let s = 0;
+    s += j.mao.filter(x => x.rank === c.rank).length * 3;
+    s += j.mao.filter(x => x.suit === c.suit).length * 1.5;
+    s += pontosCarta(c.rank) * 0.1;
+    if (s < ps) { ps = s; pior = c; }
+  }
+  return pior;
+}
+
+function cardEl(c, o = {}) {
+  const d = document.createElement('div'); d.className = 'card';
+  if (RED_SUITS.has(c.suit)) d.classList.add('red');
+  if (o.sel) d.classList.add('sel');
+  if (o.static) d.classList.add('static');
+  const r = document.createElement('span'); r.className = 'r'; r.textContent = c.rank;
+  const s = document.createElement('span'); s.className = 's'; s.textContent = c.suit;
+  d.appendChild(r); d.appendChild(s);
+  return d;
+}
+
+function renderMao() {
+  const el = document.getElementById('mao-jogador'); 
+  el.innerHTML = '';
+  el.classList.toggle('overlap', cfg.maoOverlap);
+  
+  const j = G.jogadores[0];
+  j.mao.forEach((c, i) => {
+    const d = cardEl(c, { sel: G.selecionadas.has(c.id) });
+    d.dataset.id = c.id;
+    if (cfg.maoOverlap) d.style.zIndex = 100 + i;
+    if (cfg.modoJogo === 'PvAI') configurarDrag(d, c.id);
+    el.appendChild(d);
+  });
+  if (j.mao.length === 0) { const v = document.createElement('div'); v.className = 'vazio'; v.textContent = 'Mão vazia'; el.appendChild(v); }
+}
+
+function renderBarra() {
+  document.getElementById('cartas-cpu').textContent = G.jogadores[1].mao.length;
+  const pm = document.getElementById('p-monte'); pm.innerHTML = ''; pm.classList.toggle('vazia', G.monte.length === 0);
+  if (G.monte.length > 0) {
+    const b = document.createElement('div'); b.className = 'card'; b.style.background = 'linear-gradient(135deg,#1e3a8a,#3b82f6)'; b.style.borderColor = '#1e40af';
+    pm.appendChild(b); const c = document.createElement('div'); c.className = 'contagem'; c.textContent = G.monte.length; pm.appendChild(c);
+  }
+}
+
+function renderLixo() {
+  const pl = document.getElementById('lixo-cartas'); pl.innerHTML = ''; document.getElementById('lixo-contador').textContent = G.lixo.length;
+  
+  if (cfg.lixoCols > 0) pl.classList.add('grid'); else pl.classList.remove('grid');
+  
+  if (G.lixo.length === 0) { 
+    const v = document.createElement('div'); v.id = 'lixo-vazio'; v.textContent = 'vazio'; pl.appendChild(v); 
+  } else {
+    for (let i = 0; i < G.lixo.length; i++) {
+      const c = G.lixo[i];
+      const el = cardEl(c, { static: true });
+      el.style.zIndex = 100 + i; 
+      pl.appendChild(el);
+    }
+    if (cfg.lixoCols === 0) setTimeout(() => { pl.scrollLeft = pl.scrollWidth; }, 10);
+  }
+}
+
+function renderMeldsCompleto(container, interativo) {
+  [1, 0].forEach(idx => {
+    const j = G.jogadores[idx]; if (j.melds.length === 0) return;
+    const linha = document.createElement('div'); linha.className = 'meld-linha' + (idx === 1 ? ' oponente' : '');
+    const tit = document.createElement('div'); tit.className = 'meld-titulo'; tit.textContent = j.nome + ` (${j.melds.filter(m => !m.bluff).length}/3)`; linha.appendChild(tit);
+    const scroll = document.createElement('div'); scroll.className = 'meld-scroll';
+    j.melds.forEach(m => {
+      const d = document.createElement('div');
+      const isOposta = (idx === 1);
+      let cls = 'meld';
+      if (m.virada) cls += ' virada';
+      if (m.virada && isOposta) cls += ' oculta';
+      else if (m.bluff) cls += ' bluff';
+      d.className = cls; d.dataset.meldId = m.id;
+      m.cards.forEach(c => d.appendChild(cardEl(c.card, { static: true })));
+      const badge = document.createElement('div'); badge.className = 'meld-pts';
+      badge.textContent = m.bluff ? '🎭' : '3'; d.appendChild(badge);
+      if (interativo) d.addEventListener('click', () => onMeldClick(m.id, idx)); else d.style.cursor = 'default';
+      scroll.appendChild(d);
+    });
+    linha.appendChild(scroll); container.appendChild(linha);
+  });
+}
+
+function renderMesa() {
+  const el = document.getElementById('mesa-central');
+  const btn = document.getElementById('btn-ver-mesa');
+  const tools = document.getElementById('floating-tools');
+  el.innerHTML = ''; el.appendChild(tools); el.appendChild(btn);
+  renderMeldsCompleto(el, true);
+}
+
+function renderStatus() {
+  document.getElementById('nome-jogador').textContent = G.jogadores[0].nome;
+  document.getElementById('cartas-jogador').textContent = G.jogadores[0].mao.length + ' cartas';
+  document.getElementById('cartas-cpu').textContent = G.jogadores[1].mao.length;
+  const reais0 = G.jogadores[0].melds.filter(m => !m.bluff).length;
+  const bv = document.getElementById('badge-vitoria');
+  bv.textContent = `${reais0}/3 JOGOS`;
+  bv.style.display = '';
+  bv.style.background = reais0 >= 3 ? '#2e7d32' : '#1565c0';
+  const bs = document.getElementById('badge-serie');
+  if (cfg.serie > 0) bs.textContent = `${serieVitorias[0]} – ${serieVitorias[1]} (MD${cfg.serie})`;
+  else bs.textContent = `(${serieVitorias[0]} - ${serieVitorias[1]})`;
+  document.getElementById('org-botoes').style.display = cfg.orgBotoesVisiveis ? 'flex' : 'none';
+  
+  document.body.style.setProperty('--hand-w', cfg.handWidth + 'px');
+  document.body.style.setProperty('--hand-cols', cfg.handCols);
+  document.body.style.setProperty('--lixo-w', cfg.lixoWidth + 'px');
+  document.body.style.setProperty('--lixo-cols', cfg.lixoCols);
+  document.body.style.setProperty('--mesa-w', cfg.mesaWidth + 'px');
+  
+  document.body.style.setProperty('--esp-hand', cfg.espHand + 'px');
+  document.body.style.setProperty('--esp-lixo', cfg.espLixo + 'px');
+  document.body.style.setProperty('--esp-mesa', cfg.espMesa + 'px');
+
+  document.getElementById('badge-espectador').style.display = cfg.modoJogo === 'AIvAI' ? 'inline-block' : 'none';
+  renderTestToggles();
+}
+
+function renderAcoes() {
+  const area = document.getElementById('acoes'); area.innerHTML = '';
+  if (G.finalizado) return;
+  const isIAvIA = cfg.modoJogo === 'AIvAI', idx = G.turno, j = G.jogadores[idx];
+  if (!isIAvIA && idx !== 0) { const d = document.createElement('div'); d.className = 'aguarde'; d.textContent = '⏳ Vez do oponente...'; area.appendChild(d); return; }
+  const fd = isIAvIA;
+  const btn = (txt, fn, en, cls, action) => {
+    const b = document.createElement('button'); b.textContent = txt; b.disabled = fd || !en;
+    if (cls) b.className = cls; if (action) b.dataset.action = action;
+    b.addEventListener('click', () => { if (fd) return; fn(); });
+    area.appendChild(b);
+  };
+  if (G.fase === 'draw') {
+    btn('Comprar', () => { comprarDoMonte(); render(); }, G.monte.length > 0, '', 'comprar');
+    btn('Pegar Lixo', () => { pegarLixo(); render(); }, G.lixo.length > 0, '', 'pegar_lixo');
+    return;
+  }
+  if (cfg.unlimitedDraw) btn('Comprar Mais', () => { comprarDoMonte(); render(); }, G.monte.length > 0, '', 'comprar_mais');
+  const sel = [...G.selecionadas];
+  const podeDev = idx === 0 && !fd && G.lixoOriginal.length > 0 && sel.length === G.lixoOriginal.length && sel.every(id => G.lixoOriginal.includes(id));
+  if (podeDev) btn('Devolver Lixo', () => devolverLixo(), true, '', 'devolver_lixo');
+  else {
+    btn('Baixar', () => tentarBaixar(false), sel.length === 3, '', 'baixar');
+    btn('Baixar Virada', () => tentarBaixar(true), sel.length === 3, '', 'baixar_virada');
+    btn('Descartar', () => { if (sel.length !== 1) return; if (descartar(idx, sel[0])) { G.selecionadas.clear(); render(); } }, sel.length === 1, '', 'descartar');
+  }
+  if (podeBater(idx)) btn('BATER!', () => { bater(idx); }, true, 'bater', 'bater');
+  else if (j.mao.length === 0) btn('Passar', () => { passar(); }, true, '', 'passar');
+}
+
+function render() { if (!G) return; renderMao(); renderBarra(); renderLixo(); renderMesa(); renderStatus(); renderAcoes(); salvarEstado(); }
+
+function onMeldClick(meldId, ownerIdx) {
+  if (G.finalizado || cfg.modoJogo === 'AIvAI' || G.turno !== 0 || G.fase !== 'play') return;
+  const j = G.jogadores[ownerIdx];
+  const meld = j.melds.find(m => m.id === meldId); if (!meld) return;
+  if (ownerIdx !== 0) { addLog('Só nas suas jogadas.'); return; }
+  if (meld.virada) { acaoViradaMeldId = meldId; document.getElementById('modal-acao-virada').classList.add('aberto'); return; }
+  if (meld.bluff) { addLog('Blefe não aceita encaixe.'); return; }
+  addLog('Batidinha: sem encaixe.');
+}
+
+window.acaoVirada = function(tipo) {
+  const j = G.jogadores[0];
+  const meld = j.melds.find(m => m.id === acaoViradaMeldId); if (!meld) return;
+  if (tipo === 'revelar') {
+    meld.virada = false;
+    if (meld.bluff) { meld.cards.forEach(c => j.mao.push(c.card)); j.melds = j.melds.filter(m => m.id !== acaoViradaMeldId); addLog('Blefe inválido! Cartas voltaram.'); }
+    else addLog('Revelou.');
+  } else if (tipo === 'voltar') { meld.cards.forEach(c => j.mao.push(c.card)); j.melds = j.melds.filter(m => m.id !== acaoViradaMeldId); addLog('Devolveu.'); }
+  document.getElementById('modal-acao-virada').classList.remove('aberto'); render();
+}
+
+function tentarBaixar(virada) {
+  const j = G.jogadores[0];
+  const cards = [...G.selecionadas].map(id => j.mao.find(c => c.id === id)).filter(Boolean);
+  if (cards.length !== 3) { addLog('Selecione exatamente 3 cartas.'); return; }
+  if (virada) { if (baixarBlefe(0, cards)) { G.selecionadas.clear(); render(); } return; }
+  const res = verificarJogada(cards);
+  if (!res.valida) { addLog(`Inválido: ${res.motivo}`); return; }
+  if (baixarJogada(0, cards, res.tipo)) { G.selecionadas.clear(); render(); }
+}
+
+function configurarDrag(el, cardId) {
+  let ds = null;
+  el.addEventListener('pointerdown', e => { if (G.finalizado || G.turno !== 0) return; el.setPointerCapture(e.pointerId); ds = { id: cardId, el, sx: e.clientX, sy: e.clientY, d: false }; });
+  el.addEventListener('pointermove', e => {
+    if (!ds || ds.id !== cardId) return;
+    const dx = Math.abs(e.clientX - ds.sx), dy = Math.abs(e.clientY - ds.sy);
+    if (!ds.d && (dx > 8 || dy > 8)) { ds.d = true; el.classList.add('arrastando'); }
+    if (ds.d) el.style.transform = `translate(${e.clientX-ds.sx}px,${e.clientY-ds.sy}px) scale(1.1)`;
+  });
+  const end = e => {
+    if (!ds || ds.id !== cardId) return;
+    el.style.transform = ''; el.classList.remove('arrastando');
+    if (ds.d) {
+      const cards = Array.from(document.querySelectorAll('#mao-jogador > .card'));
+      let cl = null, md = Infinity;
+      cards.forEach(c => { if (c === el) return; const r = c.getBoundingClientRect(); const d = Math.hypot(e.clientX - (r.left + r.width/2), e.clientY - (r.top + r.height/2)); if (d < md) { md = d; cl = c; } });
+      if (cl && md < 100) { const tid = parseInt(cl.dataset.id), mao = G.jogadores[0].mao; const fi = mao.findIndex(c => c.id === cardId), ti = mao.findIndex(c => c.id === tid); if (fi !== -1 && ti !== -1) { const [m] = mao.splice(fi, 1); mao.splice(ti, 0, m); render(); } }
+    } else { if (G.selecionadas.has(cardId)) G.selecionadas.delete(cardId); else G.selecionadas.add(cardId); render(); }
+    ds = null;
+  };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+
+window.organizarMao = function(tipo) {
+  if (G.finalizado || G.turno !== 0) return;
+  const m = G.jogadores[0].mao;
+  if (tipo === 'naipe') m.sort((a, b) => ORDEM_NAIPE[a.suit] !== ORDEM_NAIPE[b.suit] ? ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit] : ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank]);
+  else if (tipo === 'trinca') m.sort((a, b) => ORDEM_NUM[a.rank] !== ORDEM_NUM[b.rank] ? ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank] : ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit]);
+  else if (tipo === 'sequencia') {
+    const pn = {}; m.forEach(c => { if (!pn[c.suit]) pn[c.suit] = []; pn[c.suit].push(c); });
+    const s3 = [], s2 = [], sol = [];
+    for (const s of Object.keys(pn)) {
+      const arr = pn[s].sort((a, b) => ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank]);
+      let run = [arr[0]];
+      for (let i = 1; i < arr.length; i++) {
+        if (ORDEM_NUM[arr[i].rank] === ORDEM_NUM[arr[i-1].rank] + 1) run.push(arr[i]);
+        else { if (run.length >= 3) s3.push([...run]); else if (run.length === 2) s2.push([...run]); else sol.push(...run); run = [arr[i]]; }
+      }
+      if (run.length >= 3) s3.push([...run]); else if (run.length === 2) s2.push([...run]); else sol.push(...run);
+    }
+    const cmp = (a, b) => a.length !== b.length ? b.length - a.length : ORDEM_NAIPE[a[0].suit] - ORDEM_NAIPE[b[0].suit];
+    s3.sort(cmp); s2.sort(cmp);
+    sol.sort((a, b) => ORDEM_NUM[a.rank] !== ORDEM_NUM[b.rank] ? ORDEM_NUM[a.rank] - ORDEM_NUM[b.rank] : ORDEM_NAIPE[a.suit] - ORDEM_NAIPE[b.suit]);
+    const nm = []; s3.forEach(r => nm.push(...r)); s2.forEach(r => nm.push(...r)); nm.push(...sol);
+    G.jogadores[0].mao = nm;
+  }
+  G.selecionadas.clear(); render();
+};
+
+window.continuarJogoSalvo = function() {
+  document.getElementById('modal-jogo').classList.remove('aberto');
+  if (carregarEstadoSalvo()) {
+    render();
+    if (cfg.modoJogo === 'AIvAI' || G.turno === 1) scheduleCpuTurn(1000);
+  } else novoJogo();
+};
+
+function abrirModalLixo() { const el = document.getElementById('modal-lixo-conteudo'); el.innerHTML = ''; if (G.lixo.length === 0) el.innerHTML = '<p>Vazio</p>'; else { for (let i = G.lixo.length - 1; i >= 0; i--) el.appendChild(cardEl(G.lixo[i], { static: true })); } document.getElementById('modal-lixo').classList.add('aberto'); }
+function abrirHistorico() { document.getElementById('hist-conteudo').innerHTML = G.logs.map(m => `<div>${m}</div>`).join(''); document.getElementById('modal-hist').classList.add('aberto'); }
+function abrirModalMesa() {
+  const el = document.getElementById('modal-mesa-conteudo'); el.innerHTML = '';
+  renderMeldsCompleto(el, false);
+  if (!el.children.length) el.innerHTML = '<p>Vazio</p>';
+  document.getElementById('modal-mesa').classList.add('aberto');
+}
+window.abrirInspecao = function(tipo) {
+  if (!cfg.inspecao) return;
+  let cards = [], tit = '';
+  if (tipo === 'monte') { cards = G.monte; tit = `Monte (${cards.length})`; }
+  else if (tipo === 'cpu') { cards = G.jogadores[1].mao; tit = `CPU`; }
+  document.getElementById('inspecao-titulo').textContent = tit;
+  const el = document.getElementById('inspecao-conteudo'); el.innerHTML = '';
+  if (!cards.length) el.innerHTML = '<p>Vazio</p>'; else { let a = [...cards]; if (tipo !== 'cpu') a.reverse(); a.forEach(c => el.appendChild(cardEl(c, { static: true }))); }
+  document.getElementById('modal-inspecao').classList.add('aberto');
+};
+
+window.abrirRegrasJogo = function() {
+  const el = document.getElementById('regras-jogo-conteudo');
+  el.innerHTML = `
+    <h3>Objetivo</h3>
+    <p>Ser o primeiro a <b>baixar 3 jogos de exatamente 3 cartas cada</b> e ficar com a mão vazia.</p>
+    <h3>Distribuição</h3>
+    <ul><li>2 baralhos (104 cartas)</li><li>9 cartas por jogador</li><li>Sem mortos, sem canastra, sem pontuação</li></ul>
+    <h3>Fluxo do Turno</h3>
+    <ol>
+      <li><b>Comprar:</b> pegue 1 do monte OU só o topo do lixo.</li>
+      <li><b>Baixar (opcional):</b> baixe um jogo de 3 cartas.</li>
+      <li><b>Descartar:</b> obrigatório 1 carta no lixo.</li>
+    </ol>
+    <h3>Jogos Válidos</h3>
+    <ul>
+      <li><b>TRINCA:</b> 3 cartas do mesmo valor, todas de naipes diferentes. Ex: 7♠ 7♥ 7♦</li>
+      <li><b>SEQUÊNCIA:</b> 3 cartas do mesmo naipe em ordem consecutiva. Ex: 5♣ 6♣ 7♣</li>
+    </ul>
+    <p><b>Importante:</b> a trinca exige 3 naipes diferentes (não pode ter 2 do mesmo naipe).</p>
+    <h3>Jogada Virada (Blefe)</h3>
+    <p>Baixe 3 cartas fechadas. Se válidas = melê real oculto (conta). Se inválidas = blefe (cartas voltam à mão ao revelar).</p>
+    <h3>Encaixe</h3>
+    <p><b>Não existe encaixe</b> no Batidinha. Depois de baixado, um jogo não recebe mais cartas.</p>
+    <h3>Como Vencer</h3>
+    <p>Esvazie sua mão com <b>3 jogos reais baixados</b>. Ao descartar a última carta e ter 3 jogos reais na mesa, você <b>BATE</b> automaticamente.</p>
+    <p>Se o monte esvaziar: quem tiver menos cartas na mão vence. Empate em cartas? Quem tiver mais jogos reais vence.</p>
+  `;
+  document.getElementById('modal-regras-jogo').classList.add('aberto');
+};
+
+function abrirSecaoCfg(secao) {
+  document.getElementById('cfg-menu-principal').style.display = 'none';
+  document.querySelectorAll('.cfg-secao').forEach(e => e.style.display = 'none');
+  if (secao === 'admin') { document.getElementById('modal-senha').classList.add('aberto'); document.getElementById('senha-input').value = ''; return; }
+  document.getElementById('cfg-sec-' + secao).style.display = 'block';
+  document.getElementById('cfg-titulo').textContent = { jogadores: 'Jogadores', log: 'Log', interface: 'Interface', tesla: '🤖 TESLA', admin: 'Admin' }[secao] || 'Menu';
+  document.getElementById('cfg-voltar').style.display = 'inline-block';
+}
+function voltarMenuCfg() { document.querySelectorAll('.cfg-secao').forEach(e => e.style.display = 'none'); document.getElementById('cfg-menu-principal').style.display = 'block'; document.getElementById('cfg-titulo').textContent = 'Menu'; document.getElementById('cfg-voltar').style.display = 'none'; }
+
+function abrirConfig() {
+  voltarMenuCfg();
+  document.getElementById('cfg-nome1').value = cfg.nome1;
+  document.getElementById('cfg-nome2').value = cfg.nome2;
+  document.getElementById('cfg-modoJogo').value = cfg.modoJogo;
+  document.getElementById('cfg-serie').value = String(cfg.serie);
+  document.getElementById('cfg-verCarta').checked = cfg.verCarta;
+  document.getElementById('cfg-logVisivel').checked = cfg.logVisivel;
+  document.getElementById('cfg-toastAtivo').checked = cfg.toastAtivo;
+  document.getElementById('cfg-orgBotoes').checked = cfg.orgBotoesVisiveis;
+  document.getElementById('cfg-hand-w').value = cfg.handWidth;
+  document.getElementById('cfg-mesa-w').value = cfg.mesaWidth;
+  document.getElementById('cfg-lixo-w').value = cfg.lixoWidth;
+  document.getElementById('cfg-hand-cols').value = cfg.handCols;
+  document.getElementById('cfg-lixo-quebra').checked = cfg.lixoCols > 0;
+  document.getElementById('cfg-lixo-cols').value = cfg.lixoCols > 0 ? cfg.lixoCols : 12;
+  document.getElementById('cfg-maoOverlap').checked = cfg.maoOverlap;
+  document.getElementById('cfg-esp-hand').value = cfg.espHand;
+  document.getElementById('cfg-esp-lixo').value = cfg.espLixo;
+  document.getElementById('cfg-esp-mesa').value = cfg.espMesa;
+  document.getElementById('cfg-teslaPointer').checked = cfg.teslaPointer;
+  document.getElementById('cfg-teslaToasts').checked = cfg.teslaToasts;
+  document.getElementById('cfg-teslaVoice').checked = cfg.teslaVoice;
+  document.getElementById('cfg-teslaVoiceMode').value = cfg.teslaVoiceMode;
+  document.getElementById('cfg-teslaSpeed').value = cfg.teslaSpeed;
+  document.getElementById('cfg-teslaSpeedNum').value = cfg.teslaSpeed;
+  document.getElementById('cfg-teslaPointerSpeed').value = cfg.teslaPointerSpeed;
+  document.getElementById('cfg-teslaPointerSpeedNum').value = cfg.teslaPointerSpeed;
+  document.getElementById('cfg-teslaVoiceSpeed').value = cfg.teslaVoiceSpeed;
+  document.getElementById('cfg-teslaVoiceSpeedNum').value = cfg.teslaVoiceSpeed;
+  document.getElementById('btn-menu-admin').style.display = cfg.isAdminVisible ? 'block' : 'none';
+  if (cfg.isAdmin) {
+    document.getElementById('cfg-inspecao').checked = cfg.inspecao;
+    document.getElementById('cfg-unlimitedDraw').checked = cfg.unlimitedDraw;
+    document.getElementById('cfg-unlimitedDiscard').checked = cfg.unlimitedDiscard;
+    document.getElementById('cfg-cheatMode').checked = cfg.cheatMode;
+    updateToggleToolsBtn();
+  }
+  document.getElementById('modal-cfg').classList.add('aberto');
+}
+function fecharConfig() { document.getElementById('modal-cfg').classList.remove('aberto'); }
+
+function salvarConfig() {
+  const mudouModo = cfg.modoJogo !== document.getElementById('cfg-modoJogo').value;
+  const mudouSerie = cfg.serie !== parseInt(document.getElementById('cfg-serie').value, 10);
+  cfg.nome1 = document.getElementById('cfg-nome1').value.trim() || 'Você';
+  cfg.nome2 = document.getElementById('cfg-nome2').value.trim() || 'CPU';
+  cfg.modoJogo = document.getElementById('cfg-modoJogo').value;
+  cfg.serie = parseInt(document.getElementById('cfg-serie').value, 10) || 0;
+  cfg.verCarta = document.getElementById('cfg-verCarta').checked;
+  cfg.logVisivel = document.getElementById('cfg-logVisivel').checked;
+  cfg.toastAtivo = document.getElementById('cfg-toastAtivo').checked;
+  cfg.orgBotoesVisiveis = document.getElementById('cfg-orgBotoes').checked;
+  cfg.handWidth = parseInt(document.getElementById('cfg-hand-w').value, 10) || 52;
+  cfg.mesaWidth = parseInt(document.getElementById('cfg-mesa-w').value, 10) || 32;
+  cfg.lixoWidth = parseInt(document.getElementById('cfg-lixo-w').value, 10) || 42;
+  cfg.handCols = parseInt(document.getElementById('cfg-hand-cols').value, 10) || 6;
+  cfg.lixoCols = document.getElementById('cfg-lixo-quebra').checked ? (parseInt(document.getElementById('cfg-lixo-cols').value, 10) || 12) : 0;
+  cfg.maoOverlap = document.getElementById('cfg-maoOverlap').checked;
+  cfg.espHand = parseInt(document.getElementById('cfg-esp-hand').value, 10) || -24;
+  cfg.espLixo = parseInt(document.getElementById('cfg-esp-lixo').value, 10) || -14;
+  cfg.espMesa = parseInt(document.getElementById('cfg-esp-mesa').value, 10) || -6;
+  cfg.teslaPointer = document.getElementById('cfg-teslaPointer').checked;
+  cfg.teslaToasts = document.getElementById('cfg-teslaToasts').checked;
+  cfg.teslaVoice = document.getElementById('cfg-teslaVoice').checked;
+  cfg.teslaVoiceMode = document.getElementById('cfg-teslaVoiceMode').value;
+  cfg.teslaSpeed = parseFloat(document.getElementById('cfg-teslaSpeedNum').value) || 0.6;
+  cfg.teslaPointerSpeed = parseFloat(document.getElementById('cfg-teslaPointerSpeedNum').value) || 1;
+  cfg.teslaVoiceSpeed = parseFloat(document.getElementById('cfg-teslaVoiceSpeedNum').value) || 1;
+  if (cfg.isAdmin) {
+    cfg.inspecao = document.getElementById('cfg-inspecao').checked;
+    cfg.unlimitedDraw = document.getElementById('cfg-unlimitedDraw').checked;
+    cfg.unlimitedDiscard = document.getElementById('cfg-unlimitedDiscard').checked;
+    cfg.cheatMode = document.getElementById('cfg-cheatMode').checked;
+  }
+  if (mudouSerie) { serieVitorias = [0, 0]; salvarSerie(); }
+  salvarCfg();
+  if (G) { G.jogadores[0].nome = cfg.nome1; G.jogadores[1].nome = cfg.nome2; }
+  fecharConfig(); render();
+  if (mudouModo) novoJogo();
+}
+
+function confirmarNovoJogo() {
+  fecharConfig();
+  document.getElementById('confirm-titulo').textContent = 'Novo Jogo';
+  document.getElementById('confirm-msg').textContent = 'Iniciar novo jogo? O placar/série é mantido.';
+  document.getElementById('modal-confirm').classList.add('aberto');
+  const ok = document.getElementById('confirm-ok'), cancel = document.getElementById('confirm-cancel');
+  const close = () => { document.getElementById('modal-confirm').classList.remove('aberto'); ok.onclick = null; cancel.onclick = null; };
+  ok.onclick = () => { close(); novoJogo(); };
+  cancel.onclick = close;
+}
+
+function confirmarZerarPlacar() {
+  fecharConfig();
+  document.getElementById('confirm-titulo').textContent = 'Zerar Placar';
+  document.getElementById('confirm-msg').textContent = 'Zerar placar/série? Não pode ser desfeito.';
+  document.getElementById('modal-confirm').classList.add('aberto');
+  const ok = document.getElementById('confirm-ok'), cancel = document.getElementById('confirm-cancel');
+  const close = () => { document.getElementById('modal-confirm').classList.remove('aberto'); ok.onclick = null; cancel.onclick = null; };
+  ok.onclick = () => { close(); serieVitorias = [0, 0]; salvarSerie(); renderStatus(); showToast('Placar/série zerados.'); };
+  cancel.onclick = close;
+}
+
+window.verificarSenha = function() {
+  const input = document.getElementById('senha-input');
+  if (input.value === '123') {
+    document.getElementById('modal-senha').classList.remove('aberto'); input.value = ''; input.blur();
+    cfg.isAdmin = true;
+    document.getElementById('cfg-menu-principal').style.display = 'none';
+    document.querySelectorAll('.cfg-secao').forEach(e => e.style.display = 'none');
+    document.getElementById('cfg-sec-admin').style.display = 'block';
+    document.getElementById('cfg-titulo').textContent = 'Admin';
+    document.getElementById('cfg-voltar').style.display = 'inline-block';
+    document.getElementById('cfg-inspecao').checked = cfg.inspecao;
+    document.getElementById('cfg-unlimitedDraw').checked = cfg.unlimitedDraw;
+    document.getElementById('cfg-unlimitedDiscard').checked = cfg.unlimitedDiscard;
+    document.getElementById('cfg-cheatMode').checked = cfg.cheatMode;
+    updateToggleToolsBtn();
+  } else { showToast('Senha incorreta!'); input.value = ''; input.focus(); }
+};
+window.ocultarAdmin = function() { cfg.isAdminVisible = false; cfg.isAdmin = false; salvarCfg(); fecharConfig(); document.getElementById('btn-menu-admin').style.display = 'none'; showToast('Admin oculto.'); };
+window.toggleTest = function(key) { cfg[key] = !cfg[key]; salvarCfg(); renderTestToggles(); render(); };
+window.toggleFloatingTools = function() { cfg.showFloatingTools = !cfg.showFloatingTools; salvarCfg(); updateToggleToolsBtn(); renderTestToggles(); };
+function updateToggleToolsBtn() { const b = document.getElementById('btn-toggle-tools'); if (b) b.textContent = cfg.showFloatingTools ? 'Ocultar Ícones' : 'Mostrar Ícones'; }
+function renderTestToggles() {
+  const c = document.getElementById('floating-tools');
+  if (!cfg.isAdmin || !cfg.showFloatingTools) { c.style.display = 'none'; return; }
+  c.style.display = 'flex';
+  document.getElementById('btn-tool-inspect').classList.toggle('active', cfg.inspecao);
+  document.getElementById('btn-tool-draw').classList.toggle('active', cfg.unlimitedDraw);
+  document.getElementById('btn-tool-discard').classList.toggle('active', cfg.unlimitedDiscard);
+  document.getElementById('btn-tool-cheat').classList.toggle('active', cfg.cheatMode);
+}
+
+function bindSlider(rid, nid, k) {
+  const r = document.getElementById(rid), n = document.getElementById(nid);
+  r.addEventListener('input', () => { n.value = r.value; cfg[k] = +r.value; });
+  n.addEventListener('input', () => { r.value = n.value; cfg[k] = +n.value; });
+}
+
+function init() {
+  carregarCfg(); carregarSerie();
+  document.getElementById('btn-config').addEventListener('click', abrirConfig);
+  document.getElementById('btn-ver-mesa').addEventListener('click', abrirModalMesa);
+  document.getElementById('cfg-salvar').addEventListener('click', salvarConfig);
+  document.getElementById('modal-cfg').addEventListener('click', e => { if (e.target.id === 'modal-cfg') fecharConfig(); });
+  document.getElementById('btn-fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e => showToast('Erro: ' + e.message));
+    else if (document.exitFullscreen) document.exitFullscreen();
+  });
+  const tit = document.getElementById('titulo-secreto');
+  tit.addEventListener('pointerdown', e => {
+    e.preventDefault(); secretClicks++;
+    if (secretClicks === 11) { secretClicks = 0; cfg.isAdminVisible = true; salvarCfg(); showToast('🔓 Admin desbloqueado'); if (document.getElementById('modal-cfg').classList.contains('aberto')) document.getElementById('btn-menu-admin').style.display = 'block'; }
+    if (secretTimer) clearTimeout(secretTimer); secretTimer = setTimeout(() => secretClicks = 0, 1500);
+  });
+  document.addEventListener('pointerdown', e => { if (!tit.contains(e.target)) { secretClicks = 0; if (secretTimer) clearTimeout(secretTimer); } });
+  bindSlider('cfg-teslaSpeed', 'cfg-teslaSpeedNum', 'teslaSpeed');
+  bindSlider('cfg-teslaPointerSpeed', 'cfg-teslaPointerSpeedNum', 'teslaPointerSpeed');
+  bindSlider('cfg-teslaVoiceSpeed', 'cfg-teslaVoiceSpeedNum', 'teslaVoiceSpeed');
+
+  const temSave = !!localStorage.getItem('batidinha_save_v76solo');
+  document.getElementById('btn-jogo-continuar').style.display = temSave ? 'block' : 'none';
+
+  if (temSave) {
+    document.getElementById('modal-jogo').classList.add('aberto');
+  } else {
+    novoJogo();
+  }
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
