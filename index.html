@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Batidinha V8.0 (Online)</title>
+<title>Batidinha V8.0 (PeerJS)</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a3d1f">
+<!-- PeerJS Library -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a3d1f radial-gradient(ellipse at 50% 30%,#146b35,#062a14);color:#f2f2f2;display:flex;flex-direction:column;height:100vh;height:100dvh;font-size:14px;user-select:none;
-  --hand-w:52px; --hand-cols:6; 
-  --lixo-w:42px; --lixo-cols:12; 
-  --mesa-w:32px;
+  --hand-w:52px; --hand-cols:6; --lixo-w:42px; --lixo-cols:12; --mesa-w:32px;
   --esp-hand:-24px; --esp-lixo:-14px; --esp-mesa:-6px;
 }
 #topo{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(0,0,0,.5);border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
@@ -62,36 +62,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 #area-lixo{flex:0 0 auto;padding:4px 8px 8px;background:rgba(0,0,0,.3);display:flex;flex-direction:column;gap:2px}
 #area-lixo .rotulo{font-size:9px;color:#a5d6a7;font-weight:700;text-transform:uppercase}
 #area-lixo .rotulo span{color:#ffd54f;font-size:11px;margin-left:4px}
-
-/* ====== LIXO ====== */
-#lixo-cartas {
-  display: flex;
-  justify-content: flex-end; 
-  align-items: center;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  min-height: calc(var(--lixo-w)*48/34);
-  padding: 4px 8px 4px 16px;
-  background: rgba(0,0,0,.18);
-  border-radius: 6px;
-  cursor: pointer;
-}
-#lixo-cartas .card {
-  width: var(--lixo-w);
-  height: auto;
-  aspect-ratio: 34/48;
-  flex: 0 0 auto;
-  margin-left: var(--esp-lixo); 
-  border: 1px solid #aaa;
-  box-shadow: -2px 0 5px rgba(0,0,0,.7); 
-  position: relative;
-}
+#lixo-cartas {display: flex; justify-content: flex-end; align-items: center; overflow-x: auto; overflow-y: hidden; white-space: nowrap; min-height: calc(var(--lixo-w)*48/34); padding: 4px 8px 4px 16px; background: rgba(0,0,0,.18); border-radius: 6px; cursor: pointer;}
+#lixo-cartas .card {width: var(--lixo-w); height: auto; aspect-ratio: 34/48; flex: 0 0 auto; margin-left: var(--esp-lixo); border: 1px solid #aaa; box-shadow: -2px 0 5px rgba(0,0,0,.7); position: relative;}
 #lixo-cartas .card:first-child { margin-left: 0; }
 #lixo-vazio{color:rgba(255,255,255,.35);font-size:10px;padding:12px 8px;align-self:center}
 #lixo-cartas.grid { display: grid; grid-template-columns: repeat(var(--lixo-cols), minmax(0,1fr)); gap: 4px; overflow-y: auto; padding: 4px; align-items: start; justify-content: unset; }
 #lixo-cartas.grid .card { width: 100%; max-width: var(--lixo-w); margin-left: 0; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
-
 #area-jogador{flex:0 1 auto;min-height:0;background:rgba(0,0,0,.45);border-top:1px solid rgba(255,255,255,.1);padding:6px 8px;display:flex;flex-direction:column}
 .linha-info{display:flex;gap:6px;align-items:center;padding-bottom:3px;flex-wrap:wrap}
 .badge{font-size:10px;background:rgba(255,255,255,.12);padding:2px 6px;border-radius:6px}
@@ -99,41 +75,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .badge.progresso{background:#1565c0;color:#fff;font-weight:700}
 #org-botoes{display:flex;gap:4px;margin-bottom:4px}
 #org-botoes button{flex:0 1 auto;font-size:10px;padding:4px 8px;border-radius:4px;background:#2e7d32;color:#fff;border:1px solid #4caf50;font-weight:700;cursor:pointer}
-
-#mao-jogador{
-  display:grid;
-  grid-template-columns:repeat(var(--hand-cols,6),minmax(0,1fr));
-  gap:4px;
-  justify-items:center;
-  align-content:start;
-  padding-top:14px;
-  padding-bottom:10px;
-  max-height:42vh;
-  overflow-y:auto;
-  min-height:60px;
-}
+#mao-jogador{display:grid;grid-template-columns:repeat(var(--hand-cols,6),minmax(0,1fr));gap:4px;justify-items:center;align-content:start;padding-top:14px;padding-bottom:10px;max-height:42vh;overflow-y:auto;min-height:60px;}
 #mao-jogador>.card{width:100%;max-width:var(--hand-w,52px);height:auto;aspect-ratio:34/48;position:relative;z-index:1;touch-action:none}
 #mao-jogador>.card.sel{z-index:5}
 #mao-jogador .vazio{grid-column:1/-1;text-align:center;color:#8fd6a3;font-size:12px;padding:16px}
-
-#mao-jogador.overlap {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  justify-content: flex-start; 
-  align-items: center;
-  padding: 14px 16px 10px;
-}
-#mao-jogador.overlap > .card {
-  margin-left: var(--esp-hand); 
-  width: var(--hand-w);
-  max-width: var(--hand-w);
-  flex: 0 0 auto;
-  box-shadow: -2px 0 4px rgba(0,0,0,.6); 
-}
+#mao-jogador.overlap { display: flex; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; align-items: center; padding: 14px 16px 10px;}
+#mao-jogador.overlap > .card { margin-left: var(--esp-hand); width: var(--hand-w); max-width: var(--hand-w); flex: 0 0 auto; box-shadow: -2px 0 4px rgba(0,0,0,.6); }
 #mao-jogador.overlap > .card:first-child { margin-left: 0; }
 #mao-jogador.overlap .vazio{ width: 100%; text-align: center; color:#8fd6a3; font-size:12px; padding:16px; }
-
 #acoes{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px;flex:0 0 auto}
 #acoes button{flex:1 1 auto;min-width:66px;background:#1b5e20;color:#fff;border:1px solid #388e3c;border-radius:8px;padding:9px 6px;font-size:12px;font-weight:700;cursor:pointer}
 #acoes button:disabled{opacity:.32;cursor:default}
@@ -187,7 +136,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="tesla-pointer"><div class="tp-outer"></div><div class="tp-inner"></div></div>
 
 <div id="topo">
-  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V8.0</span></span>
+  <span class="titulo" id="titulo-secreto">BATIDINHA <span class="versao" id="topo-versao">V8.0 (PeerJS)</span></span>
   <span class="badge" id="badge-serie" style="margin-left:10px;background:rgba(255,213,79,.15);color:#ffd54f;font-weight:800;padding:2px 8px;border-radius:6px;font-size:11px">(0 - 0)</span>
   <span class="badge-espectador" id="badge-espectador">👁️ ESPECTADOR</span>
   <span class="badge" id="badge-online" style="display:none;margin-left:6px;background:#1565c0;color:#fff;font-weight:800;padding:2px 8px;border-radius:6px;font-size:10px">🌐 ONLINE</span>
@@ -294,7 +243,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
         <select id="cfg-modoJogo">
           <option value="PvAI">Jogador vs CPU</option>
           <option value="AIvAI">CPU vs CPU (Espectador)</option>
-          <option value="PvP">🌐 Online (Trystero)</option>
+          <option value="PvP">🌐 Online (P2P)</option>
         </select>
       </div>
       <div class="cfg-linha"><span>Série</span>
@@ -459,8 +408,8 @@ let teslaGeneration = 0;
 let acaoViradaMeldId = null;
 let secretClicks = 0, secretTimer = null;
 
-// 🆕 ONLINE: estado do Trystero
-let online = { room: null, isHost: false, meuIndex: 0, send: null, applyingRemote: false, ready: false };
+// 🆕 ONLINE: estado do PeerJS
+let online = { peer: null, conn: null, isHost: false, meuIndex: 0, applyingRemote: false, ready: false };
 
 function meuIdx() {
   if (cfg.modoJogo === 'PvP' && online.ready) return online.meuIndex;
@@ -469,8 +418,8 @@ function meuIdx() {
 function oponenteIdx() { return 1 - meuIdx(); }
 
 function broadcast(type, extra) {
-  if (!online.ready || online.applyingRemote || !online.send) return;
-  try { online.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
+  if (!online.ready || online.applyingRemote || !online.conn || !online.conn.open) return;
+  try { online.conn.send({ type, ...extra, from: online.meuIndex }); } catch(e) { console.warn('broadcast fail', e); }
 }
 
 function carregarSerie() { try { const r = localStorage.getItem('batidinha_serie_v80'); if (r) serieVitorias = JSON.parse(r); } catch(e) {} }
@@ -498,7 +447,6 @@ function pontosCarta(rank) { if (rank === 'A') return 15; if (rank === '2') retu
 function criarBaralho() { const cs = []; let id = 0; for (let d = 0; d < 2; d++) for (const s of SUITS) for (const r of RANKS) cs.push({ id: id++, rank: r, suit: s, deck: d }); return cs; }
 function embaralhar(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
 
-// ============ VERIFICAÇÕES ============
 function verificarTrinca(cards) {
   if (cards.length !== 3) return { valida: false, motivo: 'Exatamente 3 cartas' };
   if (!cards.every(c => c.rank === cards[0].rank)) return { valida: false, motivo: 'Valores diferentes' };
@@ -547,7 +495,6 @@ function novoJogo() {
   addLog(`Batidinha: novo jogo! ${G.jogadores[G.turno].nome} começa.`);
   render();
   if (cfg.modoJogo === 'AIvAI' || (cfg.modoJogo === 'PvAI' && G.turno === 1)) scheduleCpuTurn(900);
-  
   if (online.ready && online.isHost) {
     setTimeout(() => broadcast('init_state', { state: JSON.parse(JSON.stringify({...G, selecionadas: []})) }), 300);
   }
@@ -1360,15 +1307,7 @@ function bindSlider(rid, nid, k) {
   n.addEventListener('input', () => { r.value = n.value; cfg[k] = +n.value; });
 }
 
-// ==================== 🆕 ONLINE (TRYSTERO) ====================
-async function loadTrystero() {
-  if (!window._trysteroJoin) {
-    const mod = await import('https://esm.sh/trystero@0.21.6');
-    window._trysteroJoin = mod.joinRoom;
-  }
-  return window._trysteroJoin;
-}
-
+// ==================== 🆕 ONLINE (PEERJS) ====================
 window.onlineCriarSala = async function() {
   const code = prompt('Nome da sala (você vai passar pro seu amigo):');
   if (!code) return;
@@ -1376,16 +1315,27 @@ window.onlineCriarSala = async function() {
     document.getElementById('modal-jogo').classList.remove('aberto');
     document.getElementById('modal-cfg').classList.remove('aberto');
     showToast('Conectando...');
-    const joinRoom = await loadTrystero();
-    online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
-    online.isHost = true; online.meuIndex = 0;
-    setupOnlineRoom(code.trim());
     
-    cfg.modoJogo = 'PvP';
-    cfg.nome1 = cfg.nome1 || 'Host';
-    cfg.nome2 = 'Aguardando...'; // Nome temporário até o amigo entrar
-    novoJogo(); // O Host cria o jogo do zero
-    showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
+    // ID da sala formatado para não ter espaços ou caracteres especiais
+    const roomId = 'batidinha-v80-' + code.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    online.peer = new Peer(roomId);
+    
+    online.peer.on('open', (id) => {
+      online.isHost = true; online.meuIndex = 0; online.ready = true;
+      cfg.modoJogo = 'PvP';
+      cfg.nome1 = cfg.nome1 || 'Host';
+      cfg.nome2 = 'Aguardando...';
+      novoJogo(); 
+      showToast('Sala criada: "' + code.trim() + '". Aguardando amigo...');
+    });
+
+    online.peer.on('connection', (conn) => {
+      online.conn = conn;
+      setupConn();
+    });
+    
+    online.peer.on('error', (err) => showToast('Erro: ' + err.type));
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
 
@@ -1396,61 +1346,64 @@ window.onlineEntrarSala = async function() {
     document.getElementById('modal-jogo').classList.remove('aberto');
     document.getElementById('modal-cfg').classList.remove('aberto');
     showToast('Entrando...');
-    const joinRoom = await loadTrystero();
-    online.room = joinRoom({ appId: 'batidinha-pvp-v80' }, code.trim());
-    online.isHost = false; online.meuIndex = 1;
-    setupOnlineRoom(code.trim());
     
-    cfg.modoJogo = 'PvP';
-    G = null; // O convidado não cria o jogo, ele apenas espera o Host enviar
-    render(); 
-    showToast('Conectado à sala. Aguardando o Host iniciar...');
+    const roomId = 'batidinha-v80-' + code.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    online.peer = new Peer();
+    
+    online.peer.on('open', (id) => {
+      online.isHost = false; online.meuIndex = 1; online.ready = true;
+      online.conn = online.peer.connect(roomId);
+      setupConn();
+      
+      cfg.modoJogo = 'PvP';
+      G = null; 
+      render(); 
+      showToast('Conectado à sala. Aguardando o Host iniciar...');
+    });
+    
+    online.peer.on('error', (err) => showToast('Erro: ' + err.type));
   } catch(e) { console.error(e); showToast('Erro: ' + e.message); }
 };
 
-function setupOnlineRoom(code) {
-  const [send, get] = online.room.makeAction('acao');
-  online.send = send;
-  
-  get((data) => {
-    if (data && data.from === online.meuIndex) return;
-    onReceive(data);
-  });
-
-  online.room.onPeerJoin(() => {
+function setupConn() {
+  online.conn.on('open', () => {
     showToast('✅ Oponente conectou!');
     if (online.isHost && G) {
-      // Sistema Anti-Falha: Envia o estado 3 vezes para garantir que chegue
       const enviarEstado = () => {
         try {
           const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
-          send({ type: 'init', state: clone, from: 0 });
+          online.conn.send({ type: 'init', state: clone, from: 0 });
         } catch(e) { console.warn(e); }
       };
       setTimeout(enviarEstado, 500);
       setTimeout(enviarEstado, 1500);
-      setTimeout(enviarEstado, 3000);
     } else if (!online.isHost) {
-      // Se for convidado, pede o estado caso não receba em 1 segundo
       setTimeout(() => {
-        if (!G) send({ type: 'req_state', from: 1 });
+        if (!G) online.conn.send({ type: 'req_state', from: 1 });
       }, 1000);
     }
   });
-  
-  online.room.onPeerLeave(() => showToast('⚠️ Oponente desconectou.'));
-  online.ready = true;
+
+  online.conn.on('data', (data) => {
+    if (data && data.from === online.meuIndex) return;
+    onReceive(data);
+  });
+
+  online.conn.on('close', () => {
+    showToast('⚠️ Oponente desconectou.');
+    online.ready = false;
+  });
 }
 
 function onReceive(data) {
   if (!data || !data.type) return;
   
-  // Se o convidado está pedindo o estado, o host envia
   if (data.type === 'req_state') {
     if (online.isHost && G) {
       try {
         const clone = JSON.parse(JSON.stringify({...G, selecionadas: []}));
-        online.send({ type: 'init', state: clone, from: 0 });
+        online.conn.send({ type: 'init', state: clone, from: 0 });
       } catch(e) {}
     }
     return;
